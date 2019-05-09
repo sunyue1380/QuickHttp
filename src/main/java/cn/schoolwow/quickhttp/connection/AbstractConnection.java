@@ -315,7 +315,7 @@ public class AbstractConnection implements Connection{
         final HttpURLConnection httpURLConnection = (HttpURLConnection) (
                 proxy==null?url.openConnection():url.openConnection(proxy)
         );
-        logger.debug("[打开链接]地址:{} {},代理:{}",method.name(),url,proxy.address());
+        logger.debug("[打开链接]地址:{} {},代理:{}",method.name(),url,proxy==null?"无":proxy.address());
         //判断是否https
         if (httpURLConnection instanceof HttpsURLConnection) {
             ((HttpsURLConnection)httpURLConnection).setSSLSocketFactory(AbstractConnection.sslSocketFactory);

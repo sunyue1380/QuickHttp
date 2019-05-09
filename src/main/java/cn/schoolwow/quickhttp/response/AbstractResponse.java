@@ -7,9 +7,7 @@ import com.alibaba.fastjson.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -90,7 +88,7 @@ public class AbstractResponse implements Response{
                     }else if(endIndex<startIndex){
                         charset = contentType.substring(startIndex+prefix.length()).trim();
                     }
-                    logger.debug("[提取charset]charset:{},content-type:{}",charset,contentType);
+                    logger.debug("[提取charset][Charset]:{},[Content-Type]:{}",charset,contentType);
                 }
             }
         }
@@ -170,10 +168,18 @@ public class AbstractResponse implements Response{
 
     @Override
     public String body() {
-        try {
-            byte[] bytes = new byte[inputStream.available()];
-            body = Charset.forName(charset).decode(ByteBuffer.wrap(bytes)).toString();
+        if(body!=null){
             return body;
+        }
+        try {
+            BufferedReader in = new BufferedReader(new InputStreamReader(inputStream));
+            StringBuffer buffer = new StringBuffer();
+            String line = null;
+            while ((line = in.readLine()) != null){
+                buffer.append(line);
+            }
+            body = Charset.forName(charset).decode(ByteBuffer.wrap(buffer.toString().getBytes())).toString();
+            return buffer.toString();
         } catch (IOException e) {
             e.printStackTrace();
             return null;
@@ -184,34 +190,26 @@ public class AbstractResponse implements Response{
 
     @Override
     public JSONObject bodyAsJSONObject() throws IOException {
-        if(body==null){
-            body = body();
-        }
+        body();
         JSONObject object = JSON.parseObject(body);
         return object;
     }
 
     @Override
     public JSONArray bodyAsJSONArray() throws IOException {
-        if(body==null){
-            body = body();
-        }
+        body();
         JSONArray array = JSON.parseArray(body);
         return array;
     }
 
     public JSONObject jsonpAsJSONObject() throws IOException{
-        if(body==null){
-            body = body();
-        }
+        body();
         int startIndex = body.indexOf("(")+1,endIndex = body.lastIndexOf(")");
         return JSON.parseObject(body.substring(startIndex,endIndex));
     }
 
     public JSONArray jsonpAsJSONArray() throws IOException{
-        if(body==null){
-            body = body();
-        }
+        body();
         int startIndex = body.indexOf("(")+1,endIndex = body.lastIndexOf(")");
         return JSON.parseArray(body.substring(startIndex,endIndex));
     }

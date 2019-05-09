@@ -1,6 +1,9 @@
 package cn.schoolwow.quickhttp.response;
 
+import cn.schoolwow.quickhttp.util.QuickHttpConfig;
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,15 +27,17 @@ public class AbstractResponse implements Response{
     /**消息*/
     private String statusMessage;
     /**编码格式*/
-    private String charset;
+    private String charset = "utf-8";
     /**头部信息*/
     private Map<String,String> headerMap = new HashMap<>();
     /**本URI对应的Cookie*/
     private List<HttpCookie> httpCookieList;
     /**输入流*/
     private InputStream inputStream;
+    /**输入流字符串*/
+    private String body;
 
-    public AbstractResponse(HttpURLConnection httpURLConnection) throws IOException {
+    public AbstractResponse(HttpURLConnection httpURLConnection,int retryTimes) throws IOException {
         this.httpURLConnection = httpURLConnection;
         try {
             this.httpCookieList = ((CookieManager) CookieHandler.getDefault()).getCookieStore().get(httpURLConnection.getURL().toURI());
@@ -40,8 +45,26 @@ public class AbstractResponse implements Response{
             e.printStackTrace();
             logger.warn("[Cookie获取失败]网站Cookie信息获取失败!url:"+httpURLConnection.getURL());
         }
+        //重试机制
+        if(retryTimes<=0){
+            retryTimes = QuickHttpConfig.retryTimes;
+        }
         //获取状态信息
-        this.statusCode = httpURLConnection.getResponseCode();
+        int timeout = httpURLConnection.getConnectTimeout();
+        for(int i=1;i<=retryTimes;i++){
+            try {
+                httpURLConnection.setConnectTimeout(timeout);
+                httpURLConnection.setReadTimeout(timeout/2);
+                this.statusCode = httpURLConnection.getResponseCode();
+                break;
+            }catch (SocketTimeoutException e){
+                timeout = timeout*2;
+                if(timeout>=60000){
+                    timeout = 60000;
+                }
+                logger.warn("[链接超时]第{}次尝试重连,总共{}次,设置超时时间:{},地址:{}",i,retryTimes,timeout,httpURLConnection.getURL());
+            }
+        }
         this.statusMessage = httpURLConnection.getResponseMessage();
         //提取头部信息
         Map<String, List<String>> headerFields = httpURLConnection.getHeaderFields();
@@ -149,18 +172,48 @@ public class AbstractResponse implements Response{
     public String body() {
         try {
             byte[] bytes = new byte[inputStream.available()];
-            return Charset.forName(charset).decode(ByteBuffer.wrap(bytes)).toString();
+            body = Charset.forName(charset).decode(ByteBuffer.wrap(bytes)).toString();
+            return body;
         } catch (IOException e) {
             e.printStackTrace();
+            return null;
         }finally {
-            try {
-                inputStream.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            this.httpURLConnection.disconnect();
+            close();
         }
-        return null;
+    }
+
+    @Override
+    public JSONObject bodyAsJSONObject() throws IOException {
+        if(body==null){
+            body = body();
+        }
+        JSONObject object = JSON.parseObject(body);
+        return object;
+    }
+
+    @Override
+    public JSONArray bodyAsJSONArray() throws IOException {
+        if(body==null){
+            body = body();
+        }
+        JSONArray array = JSON.parseArray(body);
+        return array;
+    }
+
+    public JSONObject jsonpAsJSONObject() throws IOException{
+        if(body==null){
+            body = body();
+        }
+        int startIndex = body.indexOf("(")+1,endIndex = body.lastIndexOf(")");
+        return JSON.parseObject(body.substring(startIndex,endIndex));
+    }
+
+    public JSONArray jsonpAsJSONArray() throws IOException{
+        if(body==null){
+            body = body();
+        }
+        int startIndex = body.indexOf("(")+1,endIndex = body.lastIndexOf(")");
+        return JSON.parseArray(body.substring(startIndex,endIndex));
     }
 
     @Override
@@ -169,41 +222,28 @@ public class AbstractResponse implements Response{
             return new byte[inputStream.available()];
         } catch (IOException e) {
             e.printStackTrace();
+            return null;
         }finally {
-            try {
-                inputStream.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            this.httpURLConnection.disconnect();
+            close();
         }
-        return null;
     }
 
     @Override
     public BufferedInputStream bodyStream() {
         try {
-            BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
-            return bufferedInputStream;
+            return new BufferedInputStream(inputStream);
         } finally {
-            try {
-                inputStream.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            this.httpURLConnection.disconnect();
+            close();
         }
     }
 
     @Override
-    public boolean close() {
+    public void close() {
         try {
             inputStream.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        this.httpURLConnection.setUseCaches(true);
         this.httpURLConnection.disconnect();
-        return false;
     }
 }

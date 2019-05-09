@@ -38,7 +38,7 @@ public interface Connection {
         }
     }
 
-    Connection url(URL url) throws MalformedURLException;
+    Connection url(URL url);
 
     Connection url(String url);
 
@@ -83,6 +83,8 @@ public interface Connection {
     Connection cookies(Map<String, String> cookies);
 
     Connection charset(String charset);
+
+    Connection retryTimes(int retryTimes);
 
     Response execute() throws IOException;
 }

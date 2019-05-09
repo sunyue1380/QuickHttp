@@ -2,7 +2,7 @@ package cn.schoolwow.quickhttp.connection;
 
 import cn.schoolwow.quickhttp.response.AbstractResponse;
 import cn.schoolwow.quickhttp.response.Response;
-import cn.schoolwow.quickhttp.util.Constant;
+import cn.schoolwow.quickhttp.util.QuickHttpConfig;
 import cn.schoolwow.quickhttp.util.ValidateUtil;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
@@ -14,9 +14,6 @@ import java.io.*;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.*;
@@ -50,9 +47,11 @@ public class AbstractConnection implements Connection{
     /**请求编码*/
     private String charset = "utf-8";
     /**请求类型*/
-    private String contentType = "application/x-www-form-urlencoded";
+    private String contentType = "application/x-www-form-urlencoded; charset="+charset;
     /**用户代理*/
     private String userAgent = UserAgent.CHROME.userAgent;
+    /**重试次数*/
+    private int retryTimes = -1;
     /**Cookie管理器*/
     private CookieManager cookieManager = (CookieManager) CookieHandler.getDefault();
     /**自定义SSL工厂*/
@@ -206,14 +205,14 @@ public class AbstractConnection implements Connection{
     @Override
     public Connection requestBody(JSONObject body) {
         this.requestBody = body.toJSONString();
-        this.contentType = "application/json;charset="+charset;
+        this.contentType = "application/json; charset="+charset;
         return this;
     }
 
     @Override
     public Connection requestBody(JSONArray array) {
         this.requestBody = array.toJSONString();
-        this.contentType = "application/json;charset="+charset;
+        this.contentType = "application/json; charset="+charset;
         return this;
     }
 
@@ -225,7 +224,7 @@ public class AbstractConnection implements Connection{
             for(String token:tokens){
                 int startIndex = token.indexOf("=");
                 String _name = token.substring(0,startIndex).trim();
-                String _value = token.substring(startIndex+1,token.length()).trim();
+                String _value = token.substring(startIndex+1).trim();
                 cookie(_name,_value);
             }
         }else{
@@ -283,6 +282,12 @@ public class AbstractConnection implements Connection{
     }
 
     @Override
+    public Connection retryTimes(int retryTimes){
+        this.retryTimes = retryTimes;
+        return this;
+    }
+
+    @Override
     public Response execute() throws IOException {
         String protocol = url.getProtocol();
         ValidateUtil.checkArgument(protocol.matches("http(s)?"),"只支持http和https协议.当前协议:"+protocol);
@@ -297,18 +302,20 @@ public class AbstractConnection implements Connection{
         }
         //设置url请求参数
         if(!method.hasBody()){
-            url = new URL(url.getProtocol()+"://"+url.getAuthority()+url.getPath()+"?"+url.getQuery()+parameterBuilder.toString());
+            String parameter = (url.getQuery()==null?"":url.getQuery())+parameterBuilder.toString();
+            if(parameter!=null&&!parameter.equals("")){
+                parameter = "?"+parameter;
+            }
+            url = new URL(url.getProtocol()+"://"+url.getAuthority()+url.getPath()+parameter);
         }
-
-        HttpURLConnection httpURLConnection = null;
-        //设置代理
+        //创建Connection实例
         if(proxy==null){
-            httpURLConnection = (HttpURLConnection) url.openConnection();
-            logger.debug("[打开链接]地址:{}",url.toString());
-        }else{
-            httpURLConnection = (HttpURLConnection) url.openConnection(proxy);
-            logger.debug("[打开链接]地址:{},代理:{}",url.toString(),proxy.address());
+            proxy = QuickHttpConfig.proxy;
         }
+        final HttpURLConnection httpURLConnection = (HttpURLConnection) (
+                proxy==null?url.openConnection():url.openConnection(proxy)
+        );
+        logger.debug("[打开链接]地址:{} {},代理:{}",method.name(),url,proxy.address());
         //判断是否https
         if (httpURLConnection instanceof HttpsURLConnection) {
             ((HttpsURLConnection)httpURLConnection).setSSLSocketFactory(AbstractConnection.sslSocketFactory);
@@ -399,7 +406,7 @@ public class AbstractConnection implements Connection{
                     w.flush();
                     //写入文件二进制流
                     FileInputStream fileInputStream = new FileInputStream(file);
-                    final byte[] buffer = new byte[Constant.BUFFER_SIZE];
+                    final byte[] buffer = new byte[QuickHttpConfig.BUFFER_SIZE];
                     int len;
                     while ((len = fileInputStream.read(buffer)) != -1) {
                         outputStream.write(buffer, 0, len);
@@ -425,7 +432,7 @@ public class AbstractConnection implements Connection{
                 throw new IOException("http状态异常!statusCode:"+statusCode+",访问地址:"+url.toExternalForm());
             }
         }
-        Response response = new AbstractResponse(httpURLConnection);
+        Response response = new AbstractResponse(httpURLConnection,retryTimes);
         return response;
     }
 

@@ -1,5 +1,8 @@
 package cn.schoolwow.quickhttp.response;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.HttpCookie;
@@ -44,9 +47,17 @@ public interface Response {
 
     String body() throws IOException;
 
+    JSONObject bodyAsJSONObject() throws IOException;
+
+    JSONArray bodyAsJSONArray() throws IOException;
+
+    JSONObject jsonpAsJSONObject() throws IOException;
+
+    JSONArray jsonpAsJSONArray() throws IOException;
+
     byte[] bodyAsBytes();
 
     BufferedInputStream bodyStream();
 
-    boolean close();
+    void close();
 }

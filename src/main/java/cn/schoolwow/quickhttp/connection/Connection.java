@@ -7,9 +7,11 @@ import com.alibaba.fastjson.JSONObject;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.File;
 import java.io.IOException;
+import java.net.HttpCookie;
 import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.URL;
+import java.util.List;
 import java.util.Map;
 
 public interface Connection {
@@ -52,6 +54,8 @@ public interface Connection {
 
     Connection referrer(String referrer);
 
+    Connection ajax();
+
     Connection timeout(int millis);
 
     Connection followRedirects(boolean followRedirects);
@@ -79,6 +83,10 @@ public interface Connection {
     Connection headers(Map<String,String> headers);
 
     Connection cookie(String name, String value);
+
+    Connection cookie(HttpCookie httpCookie);
+
+    Connection cookie(List<HttpCookie> httpCookieList);
 
     Connection cookies(Map<String, String> cookies);
 

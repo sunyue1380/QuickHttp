@@ -2,6 +2,7 @@ package cn.schoolwow.quickhttp.response;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import org.jsoup.nodes.Document;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -45,19 +46,21 @@ public interface Response {
 
     List<HttpCookie> cookieList();
 
-    String body() throws IOException;
+    String body();
 
-    JSONObject bodyAsJSONObject() throws IOException;
+    JSONObject bodyAsJSONObject();
 
-    JSONArray bodyAsJSONArray() throws IOException;
+    JSONArray bodyAsJSONArray();
 
-    JSONObject jsonpAsJSONObject() throws IOException;
+    JSONObject jsonpAsJSONObject();
 
-    JSONArray jsonpAsJSONArray() throws IOException;
+    JSONArray jsonpAsJSONArray();
 
     byte[] bodyAsBytes();
 
     BufferedInputStream bodyStream();
+
+    Document parse() throws IOException;
 
     void close();
 }

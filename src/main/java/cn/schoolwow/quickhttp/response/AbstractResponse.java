@@ -4,11 +4,21 @@ import cn.schoolwow.quickhttp.util.QuickHttpConfig;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.nodes.XmlDeclaration;
+import org.jsoup.parser.Parser;
+import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.*;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.*;
@@ -25,17 +35,19 @@ public class AbstractResponse implements Response{
     /**消息*/
     private String statusMessage;
     /**编码格式*/
-    private String charset = "utf-8";
+    private String charset;
     /**头部信息*/
     private Map<String,String> headerMap = new HashMap<>();
     /**本URI对应的Cookie*/
     private List<HttpCookie> httpCookieList;
     /**输入流*/
-    private InputStream inputStream;
+    private BufferedInputStream bufferedInputStream;
     /**输入流字符串*/
     private String body;
+    /**Document对象*/
+    private Document document;
 
-    public AbstractResponse(HttpURLConnection httpURLConnection,int retryTimes) throws IOException {
+    public AbstractResponse(HttpURLConnection httpURLConnection,int retryTimes) throws IOException{
         this.httpURLConnection = httpURLConnection;
         try {
             this.httpCookieList = ((CookieManager) CookieHandler.getDefault()).getCookieStore().get(httpURLConnection.getURL().toURI());
@@ -49,13 +61,16 @@ public class AbstractResponse implements Response{
         }
         //获取状态信息
         int timeout = httpURLConnection.getConnectTimeout();
-        for(int i=1;i<=retryTimes;i++){
+        for(int i=0;i<=retryTimes;i++){
             try {
                 httpURLConnection.setConnectTimeout(timeout);
                 httpURLConnection.setReadTimeout(timeout/2);
                 this.statusCode = httpURLConnection.getResponseCode();
                 break;
             }catch (SocketTimeoutException e){
+                if(i==retryTimes){
+                    throw e;
+                }
                 timeout = timeout*2;
                 if(timeout>=60000){
                     timeout = 60000;
@@ -66,7 +81,6 @@ public class AbstractResponse implements Response{
         this.statusMessage = httpURLConnection.getResponseMessage();
         //提取头部信息
         Map<String, List<String>> headerFields = httpURLConnection.getHeaderFields();
-        logger.debug("[获取头部信息]headFields:{}", JSON.toJSONString(headerFields));
         Set<String> keySet = headerFields.keySet();
         for(String key:keySet){
             if(key==null){
@@ -75,34 +89,28 @@ public class AbstractResponse implements Response{
             headerMap.put(key.toLowerCase(),httpURLConnection.getHeaderField(key));
         }
         headerMap = Collections.unmodifiableMap(headerMap);
-        //提取编码格式
-        {
-            String contentType = headerMap.get("content-type");
-            String prefix = "charset=";
-            if(contentType!=null&&contentType.contains(prefix)){
-                int startIndex = contentType.indexOf(prefix);
-                if(startIndex>=0){
-                    int endIndex = contentType.lastIndexOf(";");
-                    if(endIndex>startIndex){
-                        charset = contentType.substring(startIndex+prefix.length(),endIndex).trim();
-                    }else if(endIndex<startIndex){
-                        charset = contentType.substring(startIndex+prefix.length()).trim();
-                    }
-                    logger.debug("[提取charset][Charset]:{},[Content-Type]:{}",charset,contentType);
-                }
-            }
-        }
+        logger.debug("[获取头部信息]headFields:{}", JSON.toJSONString(headerMap));
         //提取body信息
         {
-            inputStream = httpURLConnection.getErrorStream()!=null?httpURLConnection.getErrorStream():httpURLConnection.getInputStream();
+            InputStream inputStream = httpURLConnection.getErrorStream()!=null?httpURLConnection.getErrorStream():httpURLConnection.getInputStream();
             String contentEncoding = headerMap.get("content-encoding");
             if(contentEncoding!=null&&!contentEncoding.isEmpty()){
                 if(contentEncoding.equals("gzip")){
+                    logger.debug("[返回gzip格式流]Content-Encoding:{}",contentEncoding);
                     inputStream = new GZIPInputStream(inputStream);
                 }else if(contentEncoding.equals("deflate")){
+                    logger.debug("[返回deflate格式流]Content-Encoding:{}",contentEncoding);
                     inputStream = new InflaterInputStream(inputStream,new Inflater(true));
                 }
             }
+            bufferedInputStream = new BufferedInputStream(inputStream);
+        }
+        getCharset();
+        if(this.charset==null){
+            this.charset = "utf-8";
+            logger.debug("[获取charset为空]使用默认编码:utf-8");
+        }else{
+            logger.debug("[获取charset]charset:{}",charset);
         }
     }
 
@@ -148,12 +156,12 @@ public class AbstractResponse implements Response{
 
     @Override
     public boolean hasCookie(String name) {
-        return httpCookieList.stream().allMatch(httpCookie -> httpCookie.getName().equals(name));
+        return httpCookieList.stream().anyMatch(httpCookie -> httpCookie.getName().equals(name));
     }
 
     @Override
     public boolean hasCookieWithValue(String name, String value) {
-        return httpCookieList.stream().allMatch(httpCookie -> httpCookie.getName().equals(name)&&httpCookie.getValue().equals(value));
+        return httpCookieList.stream().anyMatch(httpCookie -> httpCookie.getName().equals(name)&&httpCookie.getValue().equals(value));
     }
 
     @Override
@@ -172,14 +180,14 @@ public class AbstractResponse implements Response{
             return body;
         }
         try {
-            BufferedReader in = new BufferedReader(new InputStreamReader(inputStream));
-            StringBuffer buffer = new StringBuffer();
-            String line = null;
-            while ((line = in.readLine()) != null){
-                buffer.append(line);
+            int length = 0;
+            byte[] bytes = new byte[QuickHttpConfig.BUFFER_SIZE];
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            while((length = bufferedInputStream.read(bytes,0,bytes.length))!=-1){
+                baos.write(bytes,0,length);
             }
-            body = Charset.forName(charset).decode(ByteBuffer.wrap(buffer.toString().getBytes())).toString();
-            return buffer.toString();
+            body = Charset.forName(charset).decode(ByteBuffer.wrap(baos.toByteArray())).toString();
+            return body;
         } catch (IOException e) {
             e.printStackTrace();
             return null;
@@ -189,26 +197,26 @@ public class AbstractResponse implements Response{
     }
 
     @Override
-    public JSONObject bodyAsJSONObject() throws IOException {
+    public JSONObject bodyAsJSONObject(){
         body();
         JSONObject object = JSON.parseObject(body);
         return object;
     }
 
     @Override
-    public JSONArray bodyAsJSONArray() throws IOException {
+    public JSONArray bodyAsJSONArray(){
         body();
         JSONArray array = JSON.parseArray(body);
         return array;
     }
 
-    public JSONObject jsonpAsJSONObject() throws IOException{
+    public JSONObject jsonpAsJSONObject(){
         body();
         int startIndex = body.indexOf("(")+1,endIndex = body.lastIndexOf(")");
         return JSON.parseObject(body.substring(startIndex,endIndex));
     }
 
-    public JSONArray jsonpAsJSONArray() throws IOException{
+    public JSONArray jsonpAsJSONArray(){
         body();
         int startIndex = body.indexOf("(")+1,endIndex = body.lastIndexOf(")");
         return JSON.parseArray(body.substring(startIndex,endIndex));
@@ -217,7 +225,7 @@ public class AbstractResponse implements Response{
     @Override
     public byte[] bodyAsBytes() {
         try {
-            return new byte[inputStream.available()];
+            return new byte[bufferedInputStream.available()];
         } catch (IOException e) {
             e.printStackTrace();
             return null;
@@ -229,19 +237,119 @@ public class AbstractResponse implements Response{
     @Override
     public BufferedInputStream bodyStream() {
         try {
-            return new BufferedInputStream(inputStream);
+            return bufferedInputStream;
         } finally {
             close();
         }
     }
 
     @Override
+    public Document parse() throws IOException {
+        if(document==null){
+            if(body==null){
+                document = Jsoup.parse(bufferedInputStream,charset,httpURLConnection.getURL().getHost());
+                close();
+            }else{
+                document = Jsoup.parse(body,httpURLConnection.getURL().getHost());
+            }
+        }
+        return document;
+    }
+
+    @Override
     public void close() {
         try {
-            inputStream.close();
+            bufferedInputStream.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
         this.httpURLConnection.disconnect();
+    }
+
+    private void getCharset() throws IOException {
+        {
+            String contentType = headerMap.get("content-type");
+            getCharsetFromContentType(contentType);
+        }
+        if(charset==null){
+            byte[] bytes = new byte[1024*5];
+            bufferedInputStream.mark(bytes.length);
+            bufferedInputStream.read(bytes,0,bytes.length);
+            boolean readFully = (bufferedInputStream.read()==-1);
+            bufferedInputStream.reset();
+            ByteBuffer firstBytes = ByteBuffer.wrap(bytes);
+            getCharsetFromBOM(firstBytes);
+            if(charset==null){
+                getCharsetFromMeta(firstBytes,readFully);
+            }
+        }
+    }
+
+    private void getCharsetFromMeta(ByteBuffer byteBuffer,boolean readFully){
+        String docData = Charset.forName("utf-8").decode(byteBuffer).toString();
+        Document doc = Parser.htmlParser().parseInput(docData, "");
+        Elements metaElements = doc.select("meta[http-equiv=content-type], meta[charset]");
+        for (Element meta : metaElements) {
+            if (meta.hasAttr("http-equiv")) {
+                getCharsetFromContentType(meta.attr("content"));
+            }
+            if (charset == null && meta.hasAttr("charset")) {
+                charset = meta.attr("charset");
+            }
+            break;
+        }
+
+        if(charset==null){
+            if(doc.childNodeSize()>0&& doc.childNode(0) instanceof XmlDeclaration){
+                XmlDeclaration prolog = (XmlDeclaration) doc.childNode(0);
+                if (prolog.name().equals("xml")){
+                    charset = prolog.attr("encoding");
+                }
+                if(charset!=null){
+                    charset  = charset.trim().replaceAll("[\"']", "");
+                }
+            }
+        }
+
+        if(readFully){
+            this.document = doc;
+        }
+    }
+
+    private void getCharsetFromBOM(ByteBuffer byteBuffer) throws IOException {
+        final Buffer buffer = byteBuffer;
+        buffer.mark();
+        byte[] bom = new byte[4];
+        if (byteBuffer.remaining() >= bom.length) {
+            byteBuffer.get(bom);
+            buffer.rewind();
+        }
+        if (bom[0] == 0x00 && bom[1] == 0x00 && bom[2] == (byte) 0xFE && bom[3] == (byte) 0xFF ||
+                bom[0] == (byte) 0xFF && bom[1] == (byte) 0xFE && bom[2] == 0x00 && bom[3] == 0x00) {
+            charset = "utf-32";
+        } else if (bom[0] == (byte) 0xFE && bom[1] == (byte) 0xFF ||
+                bom[0] == (byte) 0xFF && bom[1] == (byte) 0xFE) {
+            charset = "utf-16";
+        } else if (bom[0] == (byte) 0xEF && bom[1] == (byte) 0xBB && bom[2] == (byte) 0xBF) {
+            charset = "utf-8";
+        }
+        if(charset!=null){
+            bufferedInputStream.skip(1);
+        }
+    }
+
+    private void getCharsetFromContentType(String contentType){
+        String prefix = "charset=";
+        if(contentType!=null&&contentType.contains(prefix)){
+            int startIndex = contentType.indexOf(prefix);
+            if(startIndex>=0){
+                int endIndex = contentType.lastIndexOf(";");
+                if(endIndex>startIndex){
+                    charset = contentType.substring(startIndex+prefix.length(),endIndex).trim();
+                }else if(endIndex<startIndex){
+                    charset = contentType.substring(startIndex+prefix.length()).trim();
+                }
+            }
+        }
     }
 }

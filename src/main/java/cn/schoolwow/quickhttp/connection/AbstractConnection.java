@@ -1,9 +1,11 @@
 package cn.schoolwow.quickhttp.connection;
 
+import cn.schoolwow.quickhttp.QuickHttp;
 import cn.schoolwow.quickhttp.response.AbstractResponse;
 import cn.schoolwow.quickhttp.response.Response;
 import cn.schoolwow.quickhttp.util.QuickHttpConfig;
 import cn.schoolwow.quickhttp.util.ValidateUtil;
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.slf4j.Logger;
@@ -23,11 +25,13 @@ public class AbstractConnection implements Connection{
     private static final char[] mimeBoundaryChars =
             "-_1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
     private static final int boundaryLength = 32;
+    /**保存历史记录*/
+    private static Stack<String> history = new Stack<>();
 
     /**访问地址*/
     private URL url;
     /**请求方法*/
-    private Method method;
+    private Method method = Method.GET;
     /**Http代理*/
     protected Proxy proxy;
     /**Header信息*/
@@ -41,7 +45,7 @@ public class AbstractConnection implements Connection{
     /**自动重定向*/
     private boolean followRedirects = true;
     /**是否忽略http状态异常*/
-    private boolean ignoreHttpErrors = true;
+    private boolean ignoreHttpErrors = false;
     /**自定义请求体*/
     private String requestBody;
     /**请求编码*/
@@ -146,6 +150,11 @@ public class AbstractConnection implements Connection{
     }
 
     @Override
+    public Connection ajax() {
+        return header("X-Requested-With", "XMLHttpRequest");
+    }
+
+    @Override
     public Connection timeout(int millis) {
         ValidateUtil.checkArgument(millis>=0,"超时时间必须大于0!millis:"+millis);
         this.timeout = millis;
@@ -220,13 +229,7 @@ public class AbstractConnection implements Connection{
     public Connection header(String name, String value) {
         ValidateUtil.checkNotEmpty(name,"name不能为空!");
         if(name.toLowerCase().equals("cookie")){
-            String[] tokens = value.split(";");
-            for(String token:tokens){
-                int startIndex = token.indexOf("=");
-                String _name = token.substring(0,startIndex).trim();
-                String _value = token.substring(startIndex+1).trim();
-                cookie(_name,_value);
-            }
+            QuickHttp.addCookie(value,this.url);
         }else{
             this.headers.put(name,value);
         }
@@ -245,25 +248,22 @@ public class AbstractConnection implements Connection{
 
     @Override
     public Connection cookie(String name, String value) {
-        ValidateUtil.checkNotNull(this.url,"URL不能为空!");
-        try {
-            List<HttpCookie> httpCookieList = cookieManager.getCookieStore().get(url.toURI());
-            boolean find = false;
-            for(HttpCookie httpCookie:httpCookieList){
-                if(httpCookie.getName().equals(name)){
-                    httpCookie.setValue(value);
-                    find = true;
-                    break;
-                }
-            }
-            if(!find){
-                HttpCookie httpCookie = new HttpCookie(name,value);
-                httpCookieList.add(httpCookie);
-            }
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        }
+        QuickHttp.addCookie(name,value,this.url);
         return this;
+    }
+
+    @Override
+    public Connection cookie(HttpCookie httpCookie) {
+        QuickHttp.addCookie(httpCookie);
+        return this;
+    }
+
+    @Override
+    public Connection cookie(List<HttpCookie> httpCookieList) {
+        for(HttpCookie httpCookie:httpCookieList){
+            cookie(httpCookie);
+        }
+        return null;
     }
 
     @Override
@@ -315,7 +315,7 @@ public class AbstractConnection implements Connection{
         final HttpURLConnection httpURLConnection = (HttpURLConnection) (
                 proxy==null?url.openConnection():url.openConnection(proxy)
         );
-        logger.debug("[打开链接]地址:{} {},代理:{}",method.name(),url,proxy==null?"无":proxy.address());
+        logger.info("[打开链接]地址:{} {},代理:{}",method.name(),url,proxy==null?"无":proxy.address());
         //判断是否https
         if (httpURLConnection instanceof HttpsURLConnection) {
             ((HttpsURLConnection)httpURLConnection).setSSLSocketFactory(AbstractConnection.sslSocketFactory);
@@ -334,7 +334,7 @@ public class AbstractConnection implements Connection{
             try {
                 List<HttpCookie> httpCookieList = cookieManager.getCookieStore().get(url.toURI());
                 for(HttpCookie httpCookie:httpCookieList){
-                    logger.debug("[设置Cookie]name:{},value:{},path:{}",httpCookie.getName(),httpCookie.getValue(),httpCookie.getPath());
+                    logger.debug("[设置Cookie]{}:{},{}",httpCookie.getName(),httpCookie.getValue(),JSON.toJSONString(httpCookie));
                 }
             }catch (URISyntaxException e){
                 e.printStackTrace();
@@ -357,12 +357,15 @@ public class AbstractConnection implements Connection{
         logger.debug("[设置类型]Content-Type:{}",contentType);
         //设置Content-Encoding
         httpURLConnection.setRequestProperty("Accept-Encoding","gzip, deflate");
+        //设置Referer
+        if(!history.isEmpty()&&!headers.containsKey("Referer")){
+            httpURLConnection.setRequestProperty("Referer",history.peek());
+            logger.debug("[设置Referer]Referer:{}",history.peek());
+        }
         //执行请求
         httpURLConnection.setDoInput(true);
         if(method.hasBody()){
             //优先级 dataFile > requestBody > dataMap
-
-            //设置Content-Length
             String boundary = null;
             if(!dataFileMap.isEmpty()){
                 boundary = mimeBoundary();
@@ -433,6 +436,7 @@ public class AbstractConnection implements Connection{
             }
         }
         Response response = new AbstractResponse(httpURLConnection,retryTimes);
+        history.push(url.getPath());
         return response;
     }
 

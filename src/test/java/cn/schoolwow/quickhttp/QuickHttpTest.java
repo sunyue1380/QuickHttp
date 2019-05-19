@@ -19,11 +19,6 @@ import java.net.URLEncoder;
 public class QuickHttpTest {
     private Logger logger = LoggerFactory.getLogger(QuickHttp.class);
 
-    @BeforeClass
-    public static void beforeClass(){
-        QuickHttp.proxy("127.0.0.1",8888);
-    }
-
     @Test
     @Ignore
     public void testBaiDuTieBa() throws IOException, InterruptedException {

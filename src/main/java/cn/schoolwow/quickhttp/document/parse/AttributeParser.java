@@ -46,6 +46,7 @@ public class AttributeParser {
                     if((chars[index-1]!=' '&&chars[index]==' ')||index==chars.length-1){
                         //<head disable di>
                         addAttribute(AttributeType.key);
+                        state = State.inSpace;
                     }else if(chars[index]=='='){
                         currentKey = new String(chars,sectionStart,index-sectionStart);
                         state = State.equal;

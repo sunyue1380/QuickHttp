@@ -16,4 +16,9 @@ public class Element {
     public String text() {
         return node.textContent;
     }
+
+    @Override
+    public String toString(){
+        return "<"+node.tagName+">";
+    }
 }

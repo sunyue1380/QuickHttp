@@ -6,6 +6,8 @@ import cn.schoolwow.quickhttp.document.parse.Node;
 import cn.schoolwow.quickhttp.document.parse.Parser;
 import com.alibaba.fastjson.JSON;
 import com.sun.deploy.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -15,6 +17,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class Document {
+    Logger logger = LoggerFactory.getLogger(Element.class);
     enum Selector {
         //#id
         ById((s) -> {
@@ -43,13 +46,30 @@ public class Document {
             }
             String className = node.attributes.get("class");
             String[] tokens = StringUtils.splitString(value,".");
-            System.out.println(JSON.toJSONString(tokens));
             for (String token : tokens) {
                 if (!className.contains(token)) {
                     return false;
                 }
             }
             return true;
+        }),
+        ByAll((s)->{
+            if("*".equals(s)){
+                return s;
+            }else{
+                return null;
+            }
+        },(value,node)->{
+            return true;
+        }),
+        ByTag((s)->{
+            if(s.matches("[a-zA-Z]+")){
+                return s;
+            }else{
+                return null;
+            }
+        },(value,node)->{
+            return node.tagName.equals(value);
         });
 
         private Function<String, String> condition;
@@ -85,16 +105,17 @@ public class Document {
         linkedList.addAll(nodeList);
         Selector[] selectors = Selector.values();
 
-        String[] tokens = cssQuery.replaceAll("\\s+"," ").split("\\s+");
+        String[] tokens = StringUtils.splitString(cssQuery," ");
         for(String token:tokens){
             int length = nodeList.size();
             for(int i=0;i<length;i++){
-                Node node = linkedList.pop();
-                //判断状态
+                Node node = linkedList.poll();
                 for(Selector selector:selectors){
                     String value = selector.condition.apply(token);
                     if(value!=null&&selector.nodePredicate.apply(value,node)){
-                        linkedList.push(node);
+                        logger.debug("[符合条件]选择器:{},类型:{},节点标签:{}",token,selector.name(),node.tagName);
+                        linkedList.offer(node);
+                        break;
                     }
                 }
             }

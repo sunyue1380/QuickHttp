@@ -170,20 +170,7 @@ public class Parser {
 
                 }break;
                 case attribute:{
-                    String[] attributeToken = StringUtils.splitString(token.value.replaceAll("\\s+"," ")," ");
-                    for(int j=0;j<attributeToken.length;j++){
-                        if(attributeToken[j].equals("")){
-                            continue;
-                        }
-                        if(!attributeToken[j].contains("=")){
-                            current.attributes.put(attributeToken[j],"");
-                        }else{
-                            String[] keyValueToken = attributeToken[j].split("=");
-                            String key = keyValueToken[0].replaceAll("['|\"]","").trim();
-                            String value = keyValueToken[1].replaceAll("['|\"]","").trim();
-                            current.attributes.put(key,value);
-                        }
-                    }
+                    current.attributes.putAll(AttributeParser.parse(token.value));
                 }break;
                 case openTagClose:{
                     if(token.value.contains("/>")){

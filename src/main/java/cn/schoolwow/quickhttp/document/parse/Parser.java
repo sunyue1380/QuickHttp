@@ -1,5 +1,6 @@
 package cn.schoolwow.quickhttp.document.parse;
 
+import com.sun.deploy.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +46,6 @@ public class Parser {
                 case inTagName:{
                     if(c==' '){
                         addToken(TokenType.tagName);
-
                         //<html data  >
                         state = State.inAttribute;
                     }else if(c=='>'){
@@ -170,7 +170,7 @@ public class Parser {
 
                 }break;
                 case attribute:{
-                    String[] attributeToken = token.value.split("\\s+");
+                    String[] attributeToken = StringUtils.splitString(token.value.replaceAll("\\s+"," ")," ");
                     for(int j=0;j<attributeToken.length;j++){
                         if(attributeToken[j].equals("")){
                             continue;

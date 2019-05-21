@@ -1,11 +1,11 @@
 package cn.schoolwow.quickhttp.document.parse;
 
+import cn.schoolwow.quickhttp.document.element.Element;
 import com.sun.deploy.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class Parser {
     private Logger logger = LoggerFactory.getLogger(Parser.class);
@@ -14,10 +14,10 @@ public class Parser {
     private int sectionStart=0; //token起始位置
     private State state = State.openingTag;//起始状态
     private List<Token> tokenList = new ArrayList<>(); //Token列表
-    private Node root = null;
-    private Node current = root;
+    private AbstractElement root = null;
+    private AbstractElement current = root;
 
-    public static Node parse(String html){
+    public static Element parse(String html){
         return new Parser(html).root;
     }
 
@@ -138,6 +138,7 @@ public class Parser {
             }
             index++;
         }
+        //TODO 打印出token
         StringBuffer sb = new StringBuffer();
         for(Token token:tokenList){
             sb.append(token.value+",");
@@ -152,15 +153,15 @@ public class Parser {
             switch(token.tokenType){
                 case openTag:{
                     if(!tokenList.get(i+1).tokenType.equals(TokenType.commentTag)){
-                        Node newNode = new Node();
+                        AbstractElement newElement = new AbstractElement();
                         if(current==null){
-                            root = newNode;
+                            root = newElement;
                             current = root;
                         }else{
-                            newNode.parent = current;
-                            newNode.parent.childList.add(newNode);
+                            newElement.parent = current;
+                            newElement.parent.childList.add(newElement);
                         }
-                        current = newNode;
+                        current = newElement;
                     }
                 }break;
                 case tagName:{
@@ -261,5 +262,51 @@ public class Parser {
         closingTag,
         /**在注释中*/
         inComment;
+    }
+
+    class AbstractElement implements Element {
+        /**节点名称*/
+        private String tagName;
+        /**是否是单节点*/
+        private boolean isSingleNode;
+        /**父节点*/
+        private AbstractElement parent;
+        /**属性*/
+        private Map<String,String> attributes = new HashMap<>();
+        /**文本内容*/
+        private String textContent = "";
+        /**子节点*/
+        private List<Element> childList = new ArrayList<>();
+
+        @Override
+        public Map<String, String> attribute() {
+            return attributes;
+        }
+
+        public String tagName() {
+            return tagName;
+        }
+
+        public String text() {
+            return textContent;
+        }
+
+        @Override
+        public int elementSiblingIndex() {
+            if(parent==null){
+                return 0;
+            }
+            for(int i=0;i<parent.childList.size();i++){
+                if(parent.childList.get(i)==this){
+                    return i;
+                }
+            }
+            return 0;
+        }
+
+        @Override
+        public String toString(){
+            return "<"+tagName+">";
+        }
     }
 }

@@ -3,7 +3,7 @@
     <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
         <Target>System.out</Target>
         <encoder>
-            <pattern>%highlight(%-5level) %d{HH:mm:ss.SSS} %c{10}:%L %m %n</pattern>
+            <pattern>%highlight(%-5level) %m %n</pattern>
         </encoder>
     </appender>
 

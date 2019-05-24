@@ -1,5 +1,6 @@
 package cn.schoolwow.quickhttp.document.parse;
 
+import com.alibaba.fastjson.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,7 +10,7 @@ import java.util.Map;
 public class AttributeParser {
     private Logger logger = LoggerFactory.getLogger(AttributeParser.class);
     private char[] chars; //输入参数
-    private int index = 0; //当前位置
+    private int pos = 0; //当前位置
     private int sectionStart=0; //token起始位置
     private AttributeParser.State state;//起始状态
     private Map<String,String> attributes = new HashMap<>();
@@ -27,62 +28,88 @@ public class AttributeParser {
     /**词法分析*/
     private void parseAttribute(){
         //判断初始状态
-        if(chars[index]==' '){
+        if(chars[pos]==' '){
             state = State.inSpace;
         }else{
             state = State.inKey;
         }
-        index++;
-        while(index<chars.length){
+        pos++;
+        while(pos<chars.length){
             switch(state){
                 case inSpace:{
-                    //<head  id=1>
-                    if((chars[index-1]==' '&&chars[index]!=' ')||index==chars.length-1){
-                        state = State.inKey;
-                        sectionStart = index;
+                    if(isKeyValueStart()){
+                        if(isLastEqual()){
+                            state = State.inValue;
+                            sectionStart = pos;
+                        }else{
+                            if(currentKey!=null){
+                                addAttribute(AttributeType.key);
+                            }
+                            state = State.inKey;
+                            sectionStart = pos;
+                        }
+                    }else if(chars[pos]=='='){
+                        state = State.inEqual;
+                    }else if(isQuoteStartEnd()){
+                        state = State.inQuoteStart;
+                        sectionStart = pos;
+                    }else if(pos==chars.length-1){
+                        addAttribute(AttributeType.key);
                     }
                 }break;
                 case inKey:{
-                    if((chars[index-1]!=' '&&chars[index]==' ')||index==chars.length-1){
-                        //<head disable di>
+                    if(pos==chars.length-1){
+                        currentKey = new String(chars,sectionStart,pos-sectionStart);
                         addAttribute(AttributeType.key);
+                    }else if(chars[pos]==' '){
+                        currentKey = new String(chars,sectionStart,pos-sectionStart);
                         state = State.inSpace;
-                    }else if(chars[index]=='='){
-                        currentKey = new String(chars,sectionStart,index-sectionStart);
-                        state = State.equal;
+                    }else if(chars[pos]=='='){
+                        currentKey = new String(chars,sectionStart,pos-sectionStart);
+                        state = State.inEqual;
                     }
                 }break;
-                case equal:{
-                    if(chars[index]=='"'||chars[index]=='\''){
-                        state = State.inQuoteValue;
-                        sectionStart = index;
-                    }else if(chars[index]==' '){
-                        addAttribute(AttributeType.key);
-                    }else{
+                case inEqual:{
+                    if(chars[pos]==' '){
+                        state = State.inSpace;
+                    }else if(isKeyValueStart()){
                         state = State.inValue;
-                        sectionStart = index;
+                        sectionStart = pos;
+                    }else if(isQuoteStartEnd()){
+                        state = State.inQuoteStart;
+                        sectionStart = pos;
                     }
                 }break;
                 case inValue:{
-                    if(chars[index]==' '||index==chars.length-1){
+                    if(chars[pos]==' '||pos==chars.length-1){
                         state = State.inSpace;
                         addAttribute(AttributeType.keyValue);
                     }
                 }break;
-                case inQuoteValue:{
-                    if(((chars[index-1]=='"'||chars[index-1]=='\'')&&chars[index]==' ')||index==chars.length-1){
+                case inQuoteStart:{
+                    if(pos==chars.length-1){
+                        addAttribute(AttributeType.quoteKeyValue);
+                    }else if(isQuoteStartEnd()){
+                        state = State.inQuoteEnd;
+                    }
+                }break;
+                case inQuoteEnd:{
+                    if(pos==chars.length-1){
+                        addAttribute(AttributeType.quoteKeyValue);
+                    }else if(chars[pos]==' '){
                         state = State.inSpace;
                         addAttribute(AttributeType.quoteKeyValue);
                     }
                 }break;
             }
-            index++;
+            pos++;
         }
+        logger.debug("[属性列表]{}", JSON.toJSONString(attributes));
     }
 
     private void addAttribute(AttributeType attributeType){
-        int count = index-sectionStart;
-        if(index==chars.length-1){
+        int count = pos-sectionStart;
+        if(pos==chars.length-1){
             count++;
         }
         String value = new String(chars,sectionStart,count);
@@ -91,32 +118,54 @@ public class AttributeParser {
         }
         switch(attributeType){
             case key:{
-                attributes.put(value,"");
+                attributes.put(value.trim(),"");
             }break;
             case keyValue:{
-                attributes.put(currentKey,value);
+                attributes.put(currentKey.trim(),value);
             }break;
             case quoteKeyValue:{
-                attributes.put(currentKey,value.substring(1,value.length()-1));
+                attributes.put(currentKey.trim(),value.substring(1,value.length()-1));
             }break;
         }
-        sectionStart = index;
+        currentKey = null;
+        sectionStart = pos;
     }
 
-    enum AttributeType {
+    private boolean isLastEqual(){
+        if(pos==0){
+            return false;
+        }
+        int last = pos-1;
+        while(last>0&&chars[last]==' '){
+            last--;
+        }
+        return chars[last]=='=';
+    }
+
+    private boolean isQuoteStartEnd(){
+        return chars[pos]=='"'||chars[pos]=='\'';
+    }
+
+    private boolean isKeyValueStart(){
+        return chars[pos]=='_'||Character.isLetterOrDigit(chars[pos]);
+    }
+
+    private enum AttributeType {
         key,keyValue,quoteKeyValue;
     }
 
-    enum State {
+    private enum State {
         /**在属性名中*/
         inKey,
         /**在属性值中*/
         inValue,
-        /**在引号属性*/
-        inQuoteValue,
+        /**引号开始*/
+        inQuoteStart,
+        /**引号结束*/
+        inQuoteEnd,
         /**在空格中*/
         inSpace,
         /**等于符号*/
-        equal;
+        inEqual;
     }
 }

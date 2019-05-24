@@ -1,27 +1,87 @@
 package cn.schoolwow.quickhttp.document.parse;
 
-import com.alibaba.fastjson.JSON;
+import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
-import java.util.Set;
 
-import static org.junit.Assert.*;
-
+@RunWith(Parameterized.class)
 public class AttributeParserTest {
+    private Logger logger = LoggerFactory.getLogger(AttributeParser.class);
 
     @Test
-    public void parse() {
-        String attribute = " single key=value quoteKey=\"QuoteValue\" endKey=endValue";
+    public void testBasic() {
+        String attribute = "id=\"quote\" class='singleQuote'";
         Map<String,String> attibuteMap = AttributeParser.parse(attribute);
-        Set<String> keySet = attibuteMap.keySet();
-        for(String key:keySet){
-            String value = attibuteMap.get(key);
-            if(value!=null&&!value.isEmpty()){
-                System.out.println(key+":"+value);
-            }else{
-                System.out.println(key);
-            }
-        }
+        logger.info("[属性]{}",attibuteMap);
+        Assert.assertEquals(2,attibuteMap.size());
+        Assert.assertEquals(true,attibuteMap.containsKey("id"));
+        Assert.assertEquals(true,attibuteMap.containsKey("class"));
+        Assert.assertEquals("quote",attibuteMap.get("id"));
+        Assert.assertEquals("singleQuote",attibuteMap.get("class"));
+    }
+
+    @Test
+    public void testBasic2() {
+        String attribute = " style= \"width:100px; \"";
+        Map<String,String> attibuteMap = AttributeParser.parse(attribute);
+        logger.info("[属性]{}",attibuteMap);
+        Assert.assertEquals(1,attibuteMap.size());
+        Assert.assertEquals(true,attibuteMap.containsKey("style"));
+        Assert.assertEquals("width:100px; ",attibuteMap.get("style"));
+    }
+
+    @Test
+    public void testBasic3(){
+        String attribute = "type=password";
+        Map<String,String> attibuteMap = AttributeParser.parse(attribute);
+        logger.info("[属性]{}",attibuteMap);
+        Assert.assertEquals(1,attibuteMap.size());
+        Assert.assertEquals(true,attibuteMap.containsKey("type"));
+        Assert.assertEquals("password",attibuteMap.get("type"));
+    }
+
+    @Test
+    public void testOne(){
+        String attribute = "disabled name = 'username'";
+        Map<String,String> attibuteMap = AttributeParser.parse(attribute);
+        logger.info("[属性]{}",attibuteMap);
+        Assert.assertEquals(2,attibuteMap.size());
+        Assert.assertEquals(true,attibuteMap.containsKey("disabled"));
+        Assert.assertEquals(true,attibuteMap.containsKey("name"));
+        Assert.assertEquals("",attibuteMap.get("disabled"));
+        Assert.assertEquals("username",attibuteMap.get("name"));
+    }
+
+    @Test
+    public void testSpace() {
+        String attribute = "name = \"user name\"";
+        Map<String,String> attibuteMap = AttributeParser.parse(attribute);
+        logger.info("[属性]{}",attibuteMap);
+        Assert.assertEquals(1,attibuteMap.size());
+        Assert.assertEquals(true,attibuteMap.containsKey("name"));
+        Assert.assertEquals("user name",attibuteMap.get("name"));
+    }
+
+    @Test
+    public void testSpace2() {
+        String attribute = " ng-click = hello();";
+        Map<String,String> attibuteMap = AttributeParser.parse(attribute);
+        logger.info("[属性]{}",attibuteMap);
+        Assert.assertEquals(1,attibuteMap.size());
+        Assert.assertEquals(true,attibuteMap.containsKey("ng-click"));
+        Assert.assertEquals("hello();",attibuteMap.get("ng-click"));
+    }
+
+    @Test
+    public void testAll() {
+        String attribute = "disabled id=\"quote\" class = \"ha ha\" type=password ng-click = hello();";
+        Map<String,String> attibuteMap = AttributeParser.parse(attribute);
+        logger.info("[属性]{}",attibuteMap);
+        Assert.assertEquals(5,attibuteMap.size());
     }
 }

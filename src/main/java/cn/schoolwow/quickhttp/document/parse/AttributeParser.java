@@ -21,6 +21,7 @@ public class AttributeParser {
     }
 
     private AttributeParser(String attribute){
+        logger.debug("[解析属性]{}",attribute);
         this.chars = attribute.toCharArray();
         parseAttribute();
     }
@@ -50,8 +51,11 @@ public class AttributeParser {
                         }
                     }else if(chars[pos]=='='){
                         state = State.inEqual;
-                    }else if(isQuoteStartEnd()){
-                        state = State.inQuoteStart;
+                    }else if(chars[pos]=='\''){
+                        state = State.inSingleQuoteStart;
+                        sectionStart = pos;
+                    }else if(chars[pos]=='"'){
+                        state = State.inDoubleQuoteStart;
                         sectionStart = pos;
                     }else if(pos==chars.length-1){
                         addAttribute(AttributeType.key);
@@ -75,8 +79,11 @@ public class AttributeParser {
                     }else if(isKeyValueStart()){
                         state = State.inValue;
                         sectionStart = pos;
-                    }else if(isQuoteStartEnd()){
-                        state = State.inQuoteStart;
+                    }else if(chars[pos]=='\''){
+                        state = State.inSingleQuoteStart;
+                        sectionStart = pos;
+                    }else if(chars[pos]=='"'){
+                        state = State.inDoubleQuoteStart;
                         sectionStart = pos;
                     }
                 }break;
@@ -86,14 +93,29 @@ public class AttributeParser {
                         addAttribute(AttributeType.keyValue);
                     }
                 }break;
-                case inQuoteStart:{
+                case inSingleQuoteStart:{
                     if(pos==chars.length-1){
                         addAttribute(AttributeType.quoteKeyValue);
-                    }else if(isQuoteStartEnd()){
-                        state = State.inQuoteEnd;
+                    }else if(chars[pos]=='\''){
+                        state = State.inSingleQuoteEnd;
                     }
                 }break;
-                case inQuoteEnd:{
+                case inSingleQuoteEnd:{
+                    if(pos==chars.length-1){
+                        addAttribute(AttributeType.quoteKeyValue);
+                    }else if(chars[pos]==' '){
+                        state = State.inSpace;
+                        addAttribute(AttributeType.quoteKeyValue);
+                    }
+                }break;
+                case inDoubleQuoteStart:{
+                    if(pos==chars.length-1){
+                        addAttribute(AttributeType.quoteKeyValue);
+                    }else if(chars[pos]=='"'){
+                        state = State.inDoubleQuoteEnd;
+                    }
+                }break;
+                case inDoubleQuoteEnd:{
                     if(pos==chars.length-1){
                         addAttribute(AttributeType.quoteKeyValue);
                     }else if(chars[pos]==' '){
@@ -159,10 +181,14 @@ public class AttributeParser {
         inKey,
         /**在属性值中*/
         inValue,
-        /**引号开始*/
-        inQuoteStart,
-        /**引号结束*/
-        inQuoteEnd,
+        /**单引号开始*/
+        inSingleQuoteStart,
+        /**双引号开始*/
+        inDoubleQuoteStart,
+        /**单引号结束*/
+        inSingleQuoteEnd,
+        /**双引号结束*/
+        inDoubleQuoteEnd,
         /**在空格中*/
         inSpace,
         /**等于符号*/

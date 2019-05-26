@@ -1,5 +1,6 @@
 package cn.schoolwow.quickhttp.document.parse;
 
+import cn.schoolwow.quickhttp.util.ValidateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -8,12 +9,12 @@ import java.util.List;
 
 public class HTMLParser {
     private Logger logger = LoggerFactory.getLogger(HTMLParser.class);
-    private static final String[] singleNodeList = {"br","hr","img","input","param","meta","link","!doctype"};
+    private static final String[] singleNodeList = {"br","hr","img","input","param","meta","link","!doctype","?xml"};
     private char[] chars; //输入参数
     private int pos = 0; //当前位置
     private int sectionStart=0; //token起始位置
     private boolean singleNode; //是否是单节点标签
-    private boolean isInScript; //是否在脚本中
+    private boolean isInStyleOrScript; //是否在CSS或者JS中
     private State state = State.openingTag;//起始状态
     private List<HTMLToken> tokenList = new ArrayList<>(); //Token列表
     
@@ -77,7 +78,7 @@ public class HTMLParser {
                     }
                 }break;
                 case inAttribute:{
-                    if(chars[pos]=='>'){
+                    if(chars[pos]=='>'||(chars[pos]=='?'&&chars[pos+1]=='>')){
                         addToken(HTMLToken.TokenType.attribute);
                         state = singleNode? State.closingTag: State.openTagClosing;
                     }else if(chars[pos]=='/'&&chars[pos+1]=='>'){
@@ -102,10 +103,10 @@ public class HTMLParser {
                     }
                 }break;
                 case inTextContent:{
-                    if(isInScript){
-                        if(new String(chars,pos,"</script>".length()).equals("</script>")){
-                            //<script>var s = /<div></div>/.replaceAll('')</script>
+                    if(isInStyleOrScript){
+                        if(isNextMatch("</script>")||isNextMatch("</style>")){
                             addToken(HTMLToken.TokenType.textContent);
+                            isInStyleOrScript = false;
                             state = State.closingTag;
                         }
                     }else if(chars[pos]=='<'&&chars[pos+1]=='/'){
@@ -168,14 +169,33 @@ public class HTMLParser {
             }
             token.value = new String(chars,token.start,count);
         }
-        if(tokenType.equals(HTMLToken.TokenType.tagName)&&token.value.equals("script")){
-            isInScript = true;
+        if(tokenType.equals(HTMLToken.TokenType.tagName)){
+            if(token.value.equals("script")||token.value.equals("style")){
+                isInStyleOrScript = true;
+            }
         }
-        if(tokenType.equals(HTMLToken.TokenType.closeTag)&&token.value.equals("</script>")){
-            isInScript = false;
+        if(tokenType.equals(HTMLToken.TokenType.closeTag)){
+            if(token.value.contains("script")||token.value.contains("style")){
+                isInStyleOrScript = false;
+            }
         }
         sectionStart = pos;
         tokenList.add(token);
+    }
+
+    private boolean isNextMatch(String key){
+        ValidateUtil.checkNotEmpty(key);
+        int last = pos;
+        int index = 0;
+        while(last<chars.length&&index<key.length()&&chars[last]==key.charAt(index)){
+            last++;
+            index++;
+        }
+        if(index==key.length()){
+            return true;
+        }else{
+            return false;
+        }
     }
 
     /**当前节点是否是单节点*/

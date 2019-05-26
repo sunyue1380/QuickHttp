@@ -8,9 +8,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.jsoup.internal.Normalizer.lowerCase;
-import static org.jsoup.internal.Normalizer.normalize;
-
 public abstract class Evaluator {
     public abstract boolean matches(Element element);
 
@@ -131,13 +128,18 @@ public abstract class Evaluator {
 
         public AttributeStarting(String keyPrefix) {
             ValidateUtil.checkNotEmpty(keyPrefix,"属性前缀不能为空!");
-            this.keyPrefix = lowerCase(keyPrefix);
+            this.keyPrefix = keyPrefix.toLowerCase();
         }
 
         @Override
         public boolean matches(Element element) {
             Set<String> keySet = element.attribute().keySet();
-            return keySet.contains(keyPrefix);
+            for(String key:keySet){
+                if(key.toLowerCase().startsWith(keyPrefix)){
+                    return true;
+                }
+            }
+            return false;
         }
 
         @Override
@@ -197,7 +199,7 @@ public abstract class Evaluator {
 
         @Override
         public boolean matches(Element element) {
-            return element.hasAttr(key) && lowerCase(element.attr(key)).startsWith(value); // value is lower case already
+            return element.hasAttr(key) && element.attr(key).toLowerCase().startsWith(value);
         }
 
         @Override
@@ -217,7 +219,7 @@ public abstract class Evaluator {
 
         @Override
         public boolean matches(Element element) {
-            return element.hasAttr(key) && lowerCase(element.attr(key)).endsWith(value); // value is lower case
+            return element.hasAttr(key) && element.attr(key).toLowerCase().endsWith(value); // value is lower case
         }
 
         @Override
@@ -237,7 +239,7 @@ public abstract class Evaluator {
 
         @Override
         public boolean matches(Element element) {
-            return element.hasAttr(key) && lowerCase(element.attr(key)).contains(value); // value is lower case
+            return element.hasAttr(key) && element.attr(key).toLowerCase().contains(value);
         }
 
         @Override
@@ -255,7 +257,7 @@ public abstract class Evaluator {
         Pattern pattern;
 
         public AttributeWithValueMatching(String key, Pattern pattern) {
-            this.key = normalize(key);
+            this.key = key.trim().toLowerCase();
             this.pattern = pattern;
         }
 
@@ -622,12 +624,12 @@ public abstract class Evaluator {
         private String searchText;
 
         public ContainsText(String searchText) {
-            this.searchText = lowerCase(searchText);
+            this.searchText = searchText.toLowerCase();
         }
 
         @Override
         public boolean matches(Element element) {
-            return lowerCase(element.text()).contains(searchText);
+            return element.text().toLowerCase().contains(searchText);
         }
 
         @Override
@@ -643,12 +645,12 @@ public abstract class Evaluator {
         private String searchText;
 
         public ContainsOwnText(String searchText) {
-            this.searchText = lowerCase(searchText);
+            this.searchText = searchText.toLowerCase();
         }
 
         @Override
         public boolean matches(Element element) {
-            return lowerCase(element.ownText()).contains(searchText);
+            return element.ownText().toLowerCase().contains(searchText);
         }
 
         @Override

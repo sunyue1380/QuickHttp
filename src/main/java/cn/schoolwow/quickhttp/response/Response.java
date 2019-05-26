@@ -1,8 +1,8 @@
 package cn.schoolwow.quickhttp.response;
 
+import cn.schoolwow.quickhttp.document.Document;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import org.jsoup.nodes.Document;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;

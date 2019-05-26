@@ -2,14 +2,11 @@ package cn.schoolwow.quickhttp.document.parse;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
-@RunWith(Parameterized.class)
 public class AttributeParserTest {
     private Logger logger = LoggerFactory.getLogger(AttributeParser.class);
 
@@ -83,5 +80,13 @@ public class AttributeParserTest {
         Map<String,String> attibuteMap = AttributeParser.parse(attribute);
         logger.info("[属性]{}",attibuteMap);
         Assert.assertEquals(5,attibuteMap.size());
+    }
+
+    @Test
+    public void testComposit() {
+        String attribute = " data-href=\"http://news.baidu.com\" href=\"http://news.baidu.com/ns?word=word&tn=news&cl=2&rn=20&ct=1&fr=wenku\" class=\"logSend\" data-logsend='{\"send\":[\"general\", \"toptablink\",{\"to\":\"news\"}]}' wdfield=\"word\" onmousedown=\"setHeadUrl(this)\"";
+        Map<String,String> attibuteMap = AttributeParser.parse(attribute);
+        logger.info("[属性]{}",attibuteMap);
+        Assert.assertEquals(6,attibuteMap.size());
     }
 }

@@ -1,13 +1,14 @@
 package cn.schoolwow.quickhttp.document.query;
 
-import org.jsoup.Jsoup;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class QueryParserTest {
-
     @Test
     public void testEvaluator() {
         Map<String,Class> evaluatorMap = new LinkedHashMap<>();
@@ -38,7 +39,9 @@ public class QueryParserTest {
         Set<String> keySet = evaluatorMap.keySet();
         for(String key:keySet){
             Evaluator evaluator = QueryParser.parse(key);
-            Assert.assertEquals(evaluatorMap.get(key),evaluator.getClass());
+            CombiningEvaluator.And and = (CombiningEvaluator.And) evaluator;
+            List<Evaluator> evaluatorList = and.evaluatorList;
+            Assert.assertEquals(evaluatorMap.get(key),evaluatorList.get(evaluatorList.size()-1).getClass());
         }
     }
 
@@ -46,6 +49,23 @@ public class QueryParserTest {
     public void testOr() {
         Evaluator evaluator = QueryParser.parse("div , p");
         Assert.assertEquals(CombiningEvaluator.Or.class,evaluator.getClass());
+    }
+
+    @Test
+    public void testCommonPseudo() {
+        Map<String,Class> evaluatorMap = new LinkedHashMap<>();
+        evaluatorMap.put(":first-child", Evaluator.IsFirstChild.class);
+        evaluatorMap.put(":last-child", Evaluator.IsLastChild.class);
+        evaluatorMap.put(":first-of-type", Evaluator.IsFirstOfType.class);
+        evaluatorMap.put(":last-of-type", Evaluator.IsLastOfType.class);
+        evaluatorMap.put(":only-child", Evaluator.IsOnlyChild.class);
+        evaluatorMap.put(":only-of-type", Evaluator.IsOnlyOfType.class);
+        evaluatorMap.put(":empty", Evaluator.IsEmpty.class);
+        Set<String> keySet = evaluatorMap.keySet();
+        for(String key:keySet){
+            Evaluator evaluator = QueryParser.parse(key);
+            Assert.assertEquals(evaluatorMap.get(key),evaluator.getClass());
+        }
     }
 
     @Test
@@ -92,7 +112,34 @@ public class QueryParserTest {
     }
 
     @Test
-    public void testJsoup() {
-        Jsoup.parse("<div><p></p></div>").select("div,p").size();
+    public void testAllElement() {
+        Map<String,Class> evaluatorMap = new LinkedHashMap<>();
+        evaluatorMap.put("*", Evaluator.AllElements.class);
+        Set<String> keySet = evaluatorMap.keySet();
+        for(String key:keySet){
+            Evaluator evaluator = QueryParser.parse(key);
+            Assert.assertEquals(evaluatorMap.get(key),evaluator.getClass());
+        }
+    }
+
+    @Test
+    public void testCompositEvaluator() {
+        String cssQuery = "#id > div:nth-child(5)";
+        Evaluator evaluator = QueryParser.parse(cssQuery);
+        Assert.assertEquals(CombiningEvaluator.And.class,evaluator.getClass());
+        CombiningEvaluator.And and = (CombiningEvaluator.And) evaluator;
+        List<Evaluator> evaluatorList = and.evaluatorList;
+        Assert.assertEquals(Evaluator.IsNthChild.class,evaluatorList.get(0).getClass());
+        Assert.assertEquals(Evaluator.Tag.class,evaluatorList.get(1).getClass());
+        Assert.assertEquals(StructuralEvaluator.ImmediateParent.class,evaluatorList.get(2).getClass());
+        StructuralEvaluator.ImmediateParent immediateParent = (StructuralEvaluator.ImmediateParent) evaluatorList.get(2);
+        Assert.assertEquals(StructuralEvaluator.Id.class,immediateParent.evaluator.getClass());
+    }
+
+    @Test
+    public void testMeta() {
+        String cssQuery = "meta[http-equiv=content-type], meta[charset]";
+        Evaluator evaluator = QueryParser.parse(cssQuery);
+        Assert.assertEquals(CombiningEvaluator.Or.class,evaluator.getClass());
     }
 }

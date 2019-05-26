@@ -47,4 +47,18 @@ public class HTMLParserTest {
         List<HTMLToken> htmlTokenList = HTMLParser.parse(html);
         Assert.assertEquals(9,htmlTokenList.size());
     }
+
+    @Test
+    public void testBodyScript() {
+        String html = "<html><body><script>replace('</div>');</script></body></html>";
+        List<HTMLToken> htmlTokenList = HTMLParser.parse(html);
+        Assert.assertEquals(13,htmlTokenList.size());
+    }
+
+    @Test
+    public void testXML() {
+        String html = "<?xml version=\"1.0\"?><softCompany></softCompany>";
+        List<HTMLToken> htmlTokenList = HTMLParser.parse(html);
+        Assert.assertEquals(8,htmlTokenList.size());
+    }
 }

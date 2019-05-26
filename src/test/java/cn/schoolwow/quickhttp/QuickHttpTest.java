@@ -1,11 +1,11 @@
 package cn.schoolwow.quickhttp;
 
 import cn.schoolwow.quickhttp.connection.Connection;
+import cn.schoolwow.quickhttp.document.Document;
+import cn.schoolwow.quickhttp.document.element.Element;
+import cn.schoolwow.quickhttp.document.element.Elements;
 import cn.schoolwow.quickhttp.response.Response;
 import com.alibaba.fastjson.JSONObject;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -18,6 +18,11 @@ import java.net.URLEncoder;
 
 public class QuickHttpTest {
     private Logger logger = LoggerFactory.getLogger(QuickHttp.class);
+
+    @BeforeClass
+    public static void beforeClass(){
+        QuickHttp.proxy("127.0.0.1",8888);
+    }
 
     @Test
     @Ignore
@@ -108,6 +113,7 @@ public class QuickHttpTest {
             Connection connection = QuickHttp.connect(api)
                     .referrer("https://wenku.baidu.com/task/browse/daily");
             Response response = connection.execute();
+            logger.info("[编码格式]{}",response.charset());
             Document doc = response.parse();
             String s = doc.select("#signin > div.bd > div.task-detail > ul").text();
             logger.info("[签到详细信息]:{}",s);

@@ -1,15 +1,12 @@
 package cn.schoolwow.quickhttp.response;
 
+import cn.schoolwow.quickhttp.document.Document;
+import cn.schoolwow.quickhttp.document.element.Element;
+import cn.schoolwow.quickhttp.document.element.Elements;
 import cn.schoolwow.quickhttp.util.QuickHttpConfig;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.nodes.XmlDeclaration;
-import org.jsoup.parser.Parser;
-import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -247,11 +244,9 @@ public class AbstractResponse implements Response{
     public Document parse() throws IOException {
         if(document==null){
             if(body==null){
-                document = Jsoup.parse(bufferedInputStream,charset,httpURLConnection.getURL().getHost());
-                close();
-            }else{
-                document = Jsoup.parse(body,httpURLConnection.getURL().getHost());
+                body();
             }
+            document = Document.parse(body);
         }
         return document;
     }
@@ -287,7 +282,11 @@ public class AbstractResponse implements Response{
 
     private void getCharsetFromMeta(ByteBuffer byteBuffer,boolean readFully){
         String docData = Charset.forName("utf-8").decode(byteBuffer).toString();
-        Document doc = Parser.htmlParser().parseInput(docData, "");
+        Document doc = Document.parse(docData);
+        if(doc.root()==null){
+            //不是HTML文档
+            return;
+        }
         Elements metaElements = doc.select("meta[http-equiv=content-type], meta[charset]");
         for (Element meta : metaElements) {
             if (meta.hasAttr("http-equiv")) {
@@ -300,17 +299,11 @@ public class AbstractResponse implements Response{
         }
 
         if(charset==null){
-            if(doc.childNodeSize()>0&& doc.childNode(0) instanceof XmlDeclaration){
-                XmlDeclaration prolog = (XmlDeclaration) doc.childNode(0);
-                if (prolog.name().equals("xml")){
-                    charset = prolog.attr("encoding");
-                }
-                if(charset!=null){
-                    charset  = charset.trim().replaceAll("[\"']", "");
-                }
+            Element root = doc.root();
+            if(doc.root().tagName().equals("?xml")&&root.hasAttr("encoding")){
+                charset = root.attr("encoding");
             }
         }
-
         if(readFully){
             this.document = doc;
         }

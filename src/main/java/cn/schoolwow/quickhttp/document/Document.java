@@ -34,6 +34,11 @@ public class Document {
         linkedList.offer(root);
         while(!linkedList.isEmpty()){
             Element element = linkedList.poll();
+            //注释标签
+            if(element.tagName()==null){
+                continue;
+            }
+            //排除掉注释标签
             if(evaluator.matches(element)){
                 elements.add(element);
             }

@@ -16,10 +16,14 @@ public interface Element {
     String tagName();
     /**获取子节点文本*/
     String text();
+    /**获取html内容*/
+    String html();
     /**获取当前节点文本*/
     String ownText();
     /**获取OuterHTML内容*/
     String outerHtml();
+    /**获取value属性*/
+    String val();
     /**获取父节点*/
     Element parent();
     /**获取首个子节点*/

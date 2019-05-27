@@ -94,4 +94,6 @@ public interface Connection {
     Connection retryTimes(int retryTimes);
 
     Response execute() throws IOException;
+
+    void enqueue(Response.CallBack callBack);
 }

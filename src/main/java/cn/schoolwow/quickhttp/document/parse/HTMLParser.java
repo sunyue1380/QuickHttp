@@ -151,7 +151,7 @@ public class HTMLParser {
             }
             pos++;
         }
-        logger.debug("[Token列表]{}",tokenList.toString());
+        logger.trace("[Token列表]{}",tokenList.toString());
     }
 
     /**添加Token信息*/

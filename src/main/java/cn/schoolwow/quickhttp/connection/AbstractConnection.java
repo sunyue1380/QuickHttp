@@ -19,6 +19,9 @@ import java.nio.file.Paths;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class AbstractConnection implements Connection{
     private static Logger logger = LoggerFactory.getLogger(AbstractConnection.class);
@@ -438,6 +441,25 @@ public class AbstractConnection implements Connection{
         Response response = new AbstractResponse(httpURLConnection,retryTimes);
         history.push(url.getPath());
         return response;
+    }
+
+    @Override
+    public void enqueue(Response.CallBack callBack) {
+        ThreadPoolExecutorHolder.threadPoolExecutor.submit(()->{
+            try {
+                Response response = execute();
+                callBack.onResponse(response);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    private static class ThreadPoolExecutorHolder{
+        private static ThreadPoolExecutor threadPoolExecutor;
+        static{
+            threadPoolExecutor = new ThreadPoolExecutor(QuickHttpConfig.corePoolSize,QuickHttpConfig.maximumPoolSize,1, TimeUnit.MINUTES,QuickHttpConfig.blockingQueue);
+        }
     }
 
     /**创建随机Boundary字符串作为分隔符*/

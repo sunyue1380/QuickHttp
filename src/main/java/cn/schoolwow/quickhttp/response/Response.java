@@ -63,4 +63,8 @@ public interface Response {
     Document parse() throws IOException;
 
     void close();
+
+    interface CallBack{
+        void onResponse(Response response);
+    }
 }

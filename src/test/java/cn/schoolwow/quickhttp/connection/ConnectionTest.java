@@ -93,15 +93,13 @@ public class ConnectionTest {
     }
 
     @Test
-    public void testJsonp() throws IOException {
-        Response response = QuickHttp.connect("http://127.0.0.1:"+port+"/system/register")
-                .method(Connection.Method.PUT)
-                .proxy("127.0.0.1",8888)
-                .userAgent(Connection.UserAgent.MAC)
-                .timeout(3000)
-                .retryTimes(10)
-                .execute();
-        logger.info("[body]body:{}", response.body());
-        logger.info("[body]bodyAsJSON:{}", response.jsonpAsJSONObject().toJSONString());
+    public void testEnqueue() throws IOException, InterruptedException {
+        QuickHttp.connect("https://www.baidu.com")
+                .enqueue((response)->{
+                    logger.info("[回调函数调用]");
+                    logger.info("[status]{},[statusLine]{}",response.statusCode(),response.statusMessage());
+                });
+        logger.info("[主线程调用]");
+        Thread.sleep(10000);
     }
 }

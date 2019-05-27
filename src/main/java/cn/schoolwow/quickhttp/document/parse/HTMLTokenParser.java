@@ -361,7 +361,7 @@ public class HTMLTokenParser {
                         stack.push(childElements.get(i));
                     }
                 }
-                logger.info("[DOM树]{}",allElements);
+                logger.trace("[DOM树]{}",allElements);
             }
             for(Element element:allElements){
                 ((AbstractElement)element).isVisited = false;

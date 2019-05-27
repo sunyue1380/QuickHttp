@@ -1,6 +1,8 @@
 package cn.schoolwow.quickhttp.util;
 
 import java.net.Proxy;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class QuickHttpConfig {
     /**缓冲区大小*/
@@ -9,4 +11,9 @@ public class QuickHttpConfig {
     public static Proxy proxy;
     /**默认重试次数*/
     public static int retryTimes = 3;
+
+    /**线程池配置*/
+    public static int corePoolSize = Runtime.getRuntime().availableProcessors();
+    public static int maximumPoolSize = corePoolSize*5;
+    public static BlockingQueue blockingQueue = new LinkedBlockingQueue();
 }

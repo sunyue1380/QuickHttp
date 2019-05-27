@@ -53,7 +53,7 @@ public class QueryParser {
                 pos++;
             }
         }
-        logger.debug("[原始选择器列表]{}",evaluatorStack);
+        logger.trace("[原始选择器列表]{}",evaluatorStack);
         //如果Or选择器存在,则将栈内剩余元素包括成And选择器加入到Or选择器中
         if(or!=null){
             CombiningEvaluator.And and = new CombiningEvaluator.And(new ArrayList<>());
@@ -77,7 +77,7 @@ public class QueryParser {
             }
             root = new CombiningEvaluator.And(evaluatorList);
         }
-        logger.debug("[最终选择器列表]{}",root);
+        logger.trace("[最终选择器列表]{}",root);
     }
 
     private enum Selector{
@@ -97,11 +97,11 @@ public class QueryParser {
             if(chars[pos]=='#'){
                 Evaluator.Id idEvaluator = new Evaluator.Id(content.substring(1));
                 evaluatorStack.push(idEvaluator);
-                logger.debug("[添加id选择器]{}",idEvaluator);
+                logger.trace("[添加id选择器]{}",idEvaluator);
             }else if(chars[pos]=='.'){
                 Evaluator.Class aClassEvaluator = new Evaluator.Class(content.substring(1));
                 evaluatorStack.push(aClassEvaluator);
-                logger.debug("[添加class选择器]{}",aClassEvaluator);
+                logger.trace("[添加class选择器]{}",aClassEvaluator);
             }
             return content.length();
         }),
@@ -120,7 +120,7 @@ public class QueryParser {
             String content = new String(chars,pos,count);
             Evaluator.Tag tag = new Evaluator.Tag(content);
             evaluatorStack.push(tag);
-            logger.debug("[添加tag选择器]{}",tag);
+            logger.trace("[添加tag选择器]{}",tag);
             return content.length();
         }),
         ByAll((chars,pos)->{
@@ -169,7 +169,7 @@ public class QueryParser {
                 evaluator = new Evaluator.Attribute(content.substring(1,content.length()-1));
             }
             evaluatorStack.push(evaluator);
-            logger.debug("[添加{}选择器]{}",evaluator.getClass().getSimpleName(),evaluator);
+            logger.trace("[添加{}选择器]{}",evaluator.getClass().getSimpleName(),evaluator);
             return content.length();
         }),
         ByOr((chars,pos)->{
@@ -191,14 +191,14 @@ public class QueryParser {
             }
             if(or==null){
                 or = new CombiningEvaluator.Or(new ArrayList<>());
-                logger.debug("[添加Or选择器]{}",or);
+                logger.trace("[添加Or选择器]{}",or);
             }
             if(and.evaluatorList.size()==1){
                 or.evaluatorList.add(and.evaluatorList.get(0));
             }else{
                 or.evaluatorList.add(and);
             }
-            logger.debug("[Or选择器中添加And选择器]{}",and);
+            logger.trace("[Or选择器中添加And选择器]{}",and);
             return content.length();
         }),
         ByCombination((chars,pos)->{
@@ -241,7 +241,7 @@ public class QueryParser {
             }
             ValidateUtil.checkNotNull(lastEvaluator,"不合法的解析器!value:"+content);
             evaluatorStack.push(evaluator);
-            logger.debug("[添加Combination选择器]{}",evaluator);
+            logger.trace("[添加Combination选择器]{}",evaluator);
             return content.length();
         }),
         ByPseudoCommon((chars,pos)->{
@@ -310,7 +310,7 @@ public class QueryParser {
             }
             ValidateUtil.checkNotNull(structuralEvaluator,"无法识别的选择器!"+content);
             evaluatorStack.push(structuralEvaluator);
-            logger.debug("[添加Nth选择器]{}",structuralEvaluator);
+            logger.trace("[添加Nth选择器]{}",structuralEvaluator);
             return content.length();
         }),
         ByPseudo((chars,pos)->{
@@ -345,7 +345,7 @@ public class QueryParser {
             }
             ValidateUtil.checkNotNull(evaluator,"不合法的选择器!value:"+content);
             evaluatorStack.push(evaluator);
-            logger.debug("[添加伪类选择器]{}",evaluator);
+            logger.trace("[添加伪类选择器]{}",evaluator);
             return content.length();
         });
         private BiFunction<char[],Integer,Integer> condition;

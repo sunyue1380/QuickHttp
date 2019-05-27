@@ -21,7 +21,7 @@ public class AttributeParser {
     }
 
     private AttributeParser(String attribute){
-        logger.debug("[解析属性]{}",attribute);
+        logger.trace("[解析属性]{}",attribute);
         this.chars = attribute.toCharArray();
         parseAttribute();
     }
@@ -126,7 +126,7 @@ public class AttributeParser {
             }
             pos++;
         }
-        logger.debug("[属性列表]{}", JSON.toJSONString(attributes));
+        logger.trace("[属性列表]{}", JSON.toJSONString(attributes));
     }
 
     private void addAttribute(AttributeType attributeType){

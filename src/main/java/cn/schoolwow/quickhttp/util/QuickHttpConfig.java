@@ -11,6 +11,8 @@ public class QuickHttpConfig {
     public static Proxy proxy;
     /**默认重试次数*/
     public static int retryTimes = 3;
+    /**过滤器*/
+    public static Interceptor interceptor;
 
     /**线程池配置*/
     public static int corePoolSize = Runtime.getRuntime().availableProcessors();

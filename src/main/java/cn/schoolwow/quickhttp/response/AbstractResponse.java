@@ -1,5 +1,6 @@
 package cn.schoolwow.quickhttp.response;
 
+import cn.schoolwow.quickhttp.QuickHttp;
 import cn.schoolwow.quickhttp.document.Document;
 import cn.schoolwow.quickhttp.document.element.Element;
 import cn.schoolwow.quickhttp.document.element.Elements;
@@ -47,7 +48,7 @@ public class AbstractResponse implements Response{
     public AbstractResponse(HttpURLConnection httpURLConnection,int retryTimes) throws IOException{
         this.httpURLConnection = httpURLConnection;
         try {
-            this.httpCookieList = ((CookieManager) CookieHandler.getDefault()).getCookieStore().get(httpURLConnection.getURL().toURI());
+            this.httpCookieList = QuickHttp.getCookies(httpURLConnection.getURL());
         }catch (Exception e){
             e.printStackTrace();
             logger.warn("[Cookie获取失败]网站Cookie信息获取失败!url:"+httpURLConnection.getURL());

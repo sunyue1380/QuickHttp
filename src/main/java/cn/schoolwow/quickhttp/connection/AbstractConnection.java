@@ -19,7 +19,6 @@ import java.nio.file.Paths;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -365,6 +364,10 @@ public class AbstractConnection implements Connection{
             httpURLConnection.setRequestProperty("Referer",history.peek());
             logger.debug("[设置Referer]Referer:{}",history.peek());
         }
+        if(QuickHttpConfig.interceptor!=null){
+            QuickHttpConfig.interceptor.beforeConnect(this);
+        }
+
         //执行请求
         httpURLConnection.setDoInput(true);
         if(method.hasBody()){
@@ -440,6 +443,9 @@ public class AbstractConnection implements Connection{
         }
         Response response = new AbstractResponse(httpURLConnection,retryTimes);
         history.push(url.getPath());
+        if(QuickHttpConfig.interceptor!=null){
+            QuickHttpConfig.interceptor.afterConnection(response);
+        }
         return response;
     }
 

@@ -2,6 +2,7 @@ package cn.schoolwow.quickhttp;
 
 import cn.schoolwow.quickhttp.connection.AbstractConnection;
 import cn.schoolwow.quickhttp.connection.Connection;
+import cn.schoolwow.quickhttp.util.Interceptor;
 import cn.schoolwow.quickhttp.util.QuickHttpConfig;
 import cn.schoolwow.quickhttp.util.ValidateUtil;
 import org.slf4j.Logger;
@@ -20,6 +21,11 @@ public class QuickHttp {
         CookieHandler.setDefault(cookieManager);
         //打开限制头部
         System.setProperty("sun.net.http.allowRestrictedHeaders", "true");
+    }
+
+
+    public static void intercept(Interceptor interceptor){
+        QuickHttpConfig.interceptor = interceptor;
     }
 
     public static void addCookie(String cookie,String url){
@@ -89,6 +95,17 @@ public class QuickHttp {
         for(String key:keySet){
             addCookie(key, cookies.get(key),u);
         }
+    }
+
+    public static HttpCookie getCookie(String url, String name){
+        ValidateUtil.checkNotEmpty(name,"name不能为空!");
+        List<HttpCookie> httpCookieList = getCookies(url);
+        for(HttpCookie httpCookie:httpCookieList){
+            if(httpCookie.getName().equals(name)){
+                return httpCookie;
+            }
+        }
+        return null;
     }
 
     public static List<HttpCookie> getCookies(String url){

@@ -5,6 +5,7 @@ import cn.schoolwow.quickhttp.document.Document;
 import cn.schoolwow.quickhttp.document.element.Element;
 import cn.schoolwow.quickhttp.document.element.Elements;
 import cn.schoolwow.quickhttp.response.Response;
+import cn.schoolwow.quickhttp.util.Interceptor;
 import com.alibaba.fastjson.JSONObject;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -22,6 +23,25 @@ public class QuickHttpTest {
     @BeforeClass
     public static void beforeClass(){
         QuickHttp.proxy("127.0.0.1",8888);
+    }
+
+    @Test
+    public void testInterceptor() throws InterruptedException {
+        QuickHttp.intercept(new Interceptor() {
+            @Override
+            public void beforeConnect(Connection connection) {
+                logger.info("[beforeConnect]调用了");
+            }
+
+            @Override
+            public void afterConnection(Response response) {
+                logger.info("[afterConnection]调用了");
+            }
+        });
+        QuickHttp.connect("https://www.baidu.com").enqueue((response)->{
+            logger.info("[回调函数]statusCode:{},statusMessage:{}",response.statusCode(),response.statusMessage());
+        });
+        Thread.sleep(10000);
     }
 
     @Test

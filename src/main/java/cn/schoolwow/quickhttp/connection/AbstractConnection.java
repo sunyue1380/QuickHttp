@@ -457,6 +457,7 @@ public class AbstractConnection implements Connection{
                 callBack.onResponse(response);
             } catch (IOException e) {
                 e.printStackTrace();
+                callBack.onError(e);
             }
         });
     }

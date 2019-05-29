@@ -66,5 +66,7 @@ public interface Response {
 
     interface CallBack{
         void onResponse(Response response);
+
+        void onError(IOException e);
     }
 }

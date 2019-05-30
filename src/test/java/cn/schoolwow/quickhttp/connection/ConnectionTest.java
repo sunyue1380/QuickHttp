@@ -91,15 +91,4 @@ public class ConnectionTest {
         logger.info("[body]body:{}", response.body());
         logger.info("[body]bodyAsJSON:{}", response.bodyAsJSONObject().toJSONString());
     }
-
-    @Test
-    public void testEnqueue() throws IOException, InterruptedException {
-        QuickHttp.connect("https://www.baidu.com")
-                .enqueue((response)->{
-                    logger.info("[回调函数调用]");
-                    logger.info("[status]{},[statusLine]{}",response.statusCode(),response.statusMessage());
-                });
-        logger.info("[主线程调用]");
-        Thread.sleep(10000);
-    }
 }

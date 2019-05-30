@@ -1,6 +1,5 @@
-package cn.schoolwow.quickhttp;
+package cn.schoolwow.quickhttp.document;
 
-import cn.schoolwow.quickhttp.document.Document;
 import cn.schoolwow.quickhttp.document.element.Element;
 import cn.schoolwow.quickhttp.document.element.Elements;
 import org.apache.commons.io.FileUtils;

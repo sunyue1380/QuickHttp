@@ -12,7 +12,8 @@ public interface Interceptor {
 
     /**
      * 在http请求发送完毕之后
+     * @param connection 连接对象
      * @param response 返回对象
      * */
-    void afterConnection(Response response);
+    void afterConnection(Connection connection,Response response);
 }

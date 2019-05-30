@@ -444,7 +444,7 @@ public class AbstractConnection implements Connection{
         Response response = new AbstractResponse(httpURLConnection,retryTimes);
         history.push(url.getPath());
         if(QuickHttpConfig.interceptor!=null){
-            QuickHttpConfig.interceptor.afterConnection(response);
+            QuickHttpConfig.interceptor.afterConnection(this,response);
         }
         return response;
     }
@@ -457,7 +457,7 @@ public class AbstractConnection implements Connection{
                 callBack.onResponse(response);
             } catch (IOException e) {
                 e.printStackTrace();
-                callBack.onError(e);
+                callBack.onError(this,e);
             }
         });
     }

@@ -22,7 +22,6 @@ public class QuickHttpTest {
 
     @BeforeClass
     public static void beforeClass(){
-        QuickHttp.proxy("127.0.0.1",8888);
     }
 
     @Test
@@ -34,12 +33,20 @@ public class QuickHttpTest {
             }
 
             @Override
-            public void afterConnection(Response response) {
+            public void afterConnection(Connection connection,Response response) {
                 logger.info("[afterConnection]调用了");
             }
         });
-        QuickHttp.connect("https://www.baidu.com").enqueue((response)->{
-            logger.info("[回调函数]statusCode:{},statusMessage:{}",response.statusCode(),response.statusMessage());
+        QuickHttp.connect("https://www.baidu.com").enqueue(new Response.CallBack() {
+            @Override
+            public void onResponse(Response response) {
+                logger.info("[onResponse方法被调用]");
+            }
+
+            @Override
+            public void onError(Connection connection,IOException e) {
+                logger.info("[onError方法被调用]");
+            }
         });
         Thread.sleep(10000);
     }

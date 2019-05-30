@@ -1,5 +1,6 @@
 package cn.schoolwow.quickhttp.response;
 
+import cn.schoolwow.quickhttp.connection.Connection;
 import cn.schoolwow.quickhttp.document.Document;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
@@ -67,6 +68,6 @@ public interface Response {
     interface CallBack{
         void onResponse(Response response);
 
-        void onError(IOException e);
+        void onError(Connection connection, IOException e);
     }
 }

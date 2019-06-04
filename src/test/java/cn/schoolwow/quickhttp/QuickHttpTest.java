@@ -20,10 +20,6 @@ import java.net.URLEncoder;
 public class QuickHttpTest {
     private Logger logger = LoggerFactory.getLogger(QuickHttp.class);
 
-    @BeforeClass
-    public static void beforeClass(){
-    }
-
     @Test
     public void testInterceptor() throws InterruptedException {
         QuickHttp.intercept(new Interceptor() {

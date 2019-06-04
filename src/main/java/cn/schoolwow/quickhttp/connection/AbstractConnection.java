@@ -28,7 +28,7 @@ public class AbstractConnection implements Connection{
             "-_1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
     private static final int boundaryLength = 32;
     /**保存历史记录*/
-    private static Stack<String> history = new Stack<>();
+    private static Map<String,String> historyMap = new HashMap<>();
 
     /**访问地址*/
     private URL url;
@@ -58,6 +58,8 @@ public class AbstractConnection implements Connection{
     private String userAgent = UserAgent.CHROME.userAgent;
     /**重试次数*/
     private int retryTimes = -1;
+    /**重定向次数*/
+    private int redirectTimes = 0;
     /**Cookie管理器*/
     private CookieManager cookieManager = (CookieManager) CookieHandler.getDefault();
     /**自定义SSL工厂*/
@@ -351,6 +353,7 @@ public class AbstractConnection implements Connection{
         httpURLConnection.setReadTimeout(timeout/2);
         //设置是否自动重定向
         httpURLConnection.setInstanceFollowRedirects(followRedirects);
+        logger.debug("[设置重定向]是否自动重定向:{}",followRedirects);
         //设置用户代理
         httpURLConnection.setRequestProperty("User-Agent",userAgent);
         logger.debug("[设置用户代理]UserAgent:{}",userAgent);
@@ -360,9 +363,12 @@ public class AbstractConnection implements Connection{
         //设置Content-Encoding
         httpURLConnection.setRequestProperty("Accept-Encoding","gzip, deflate");
         //设置Referer
-        if(!history.isEmpty()&&!headers.containsKey("Referer")){
-            httpURLConnection.setRequestProperty("Referer",history.peek());
-            logger.debug("[设置Referer]Referer:{}",history.peek());
+        if(!historyMap.isEmpty()&&!headers.containsKey("Referer")){
+            String referer = historyMap.get(url.getHost());
+            if(referer!=null&&!referer.equals("")){
+                httpURLConnection.setRequestProperty("Referer",referer);
+                logger.debug("[设置Referer]Referer:{}",referer);
+            }
         }
         if(QuickHttpConfig.interceptor!=null){
             QuickHttpConfig.interceptor.beforeConnect(this);
@@ -442,7 +448,16 @@ public class AbstractConnection implements Connection{
             }
         }
         Response response = new AbstractResponse(httpURLConnection,retryTimes);
-        history.push(url.getPath());
+        //HttpUrlConnection无法处理从http到https的重定向或者https到http的重定向
+        while(response.statusCode()>=300&&response.statusCode()<400&&response.hasHeader("Location")){
+            if(redirectTimes>=QuickHttpConfig.maxRedirectTimes){
+                throw new IOException("重定向次数过多!当前次数:"+redirectTimes+",限制最大次数:"+QuickHttpConfig.maxRedirectTimes);
+            }
+            this.url(response.header("location"));
+            redirectTimes++;
+            response = execute();
+        }
+        historyMap.put(url.getHost(),url.toString());
         if(QuickHttpConfig.interceptor!=null){
             QuickHttpConfig.interceptor.afterConnection(this,response);
         }

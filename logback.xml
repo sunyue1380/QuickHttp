@@ -7,7 +7,7 @@
         </encoder>
     </appender>
 
-    <root level="DEBUG">
+    <root level="trace">
         <appender-ref ref="stdout" />
     </root>
 </configuration>

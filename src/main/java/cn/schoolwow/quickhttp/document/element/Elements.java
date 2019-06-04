@@ -28,7 +28,7 @@ public class Elements extends ArrayList<Element>{
     /**
      * 返回集合的第一个元素
      * */
-    public Element getFirst(){
+    public Element first(){
         if(this.isEmpty()){
             return null;
         }else{
@@ -39,7 +39,7 @@ public class Elements extends ArrayList<Element>{
     /**
      * 返回集合的最后一个元素
      * */
-    public Element getLast(){
+    public Element last(){
         if(this.isEmpty()){
             return null;
         }else{

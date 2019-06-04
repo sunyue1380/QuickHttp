@@ -1,8 +1,11 @@
 package cn.schoolwow.quickhttp.document.element;
 
+import java.util.List;
 import java.util.Map;
 
 public interface Element {
+    Elements select(String cssQuery);
+    /**获取属性*/
     Map<String,String> attribute();
     /**获取id*/
     String id();
@@ -16,6 +19,8 @@ public interface Element {
     String tagName();
     /**获取子节点文本*/
     String text();
+    /**获取文本节点列表*/
+    List<String> textNodes();
     /**获取html内容*/
     String html();
     /**获取当前节点文本*/

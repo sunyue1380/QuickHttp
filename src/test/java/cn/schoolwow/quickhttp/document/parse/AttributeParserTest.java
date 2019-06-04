@@ -83,10 +83,18 @@ public class AttributeParserTest {
     }
 
     @Test
-    public void testComposit() {
-        String attribute = " data-href=\"http://news.baidu.com\" href=\"http://news.baidu.com/ns?word=word&tn=news&cl=2&rn=20&ct=1&fr=wenku\" class=\"logSend\" data-logsend='{\"send\":[\"general\", \"toptablink\",{\"to\":\"news\"}]}' wdfield=\"word\" onmousedown=\"setHeadUrl(this)\"";
+    public void testQuoteEnd() {
+        String attribute = " curname=\"ygp\"data=\"{'pid': '73868', 'platform': 'pc'}\"";
         Map<String,String> attibuteMap = AttributeParser.parse(attribute);
         logger.info("[属性]{}",attibuteMap);
-        Assert.assertEquals(6,attibuteMap.size());
+        Assert.assertEquals(2,attibuteMap.size());
+    }
+
+    @Test
+    public void testQuoteEnd2() {
+        String attribute = " http-equiv=\"content-type\" content=\"text/html; charset=GBK\" ";
+        Map<String,String> attibuteMap = AttributeParser.parse(attribute);
+        logger.info("[属性]{}",attibuteMap);
+        Assert.assertEquals(2,attibuteMap.size());
     }
 }

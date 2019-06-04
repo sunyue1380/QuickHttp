@@ -32,7 +32,7 @@ public class HTMLParser {
         while(pos<chars.length){
             switch(state){
                 case openingTag:{
-                    if(chars[pos]=='!'&&chars[pos+1]=='-'&&chars[pos+2]=='-'){
+                    if(isNextMatch("!--")){
                         //<!--comment-->
                         addToken(HTMLToken.TokenType.openTag);
                         state = State.inComment;
@@ -64,7 +64,7 @@ public class HTMLParser {
                             singleNode = false;
                             state = State.openTagClosing;
                         }
-                    }else if(chars[pos]=='/'&&chars[pos+1]=='>'){
+                    }else if(isNextMatch("/>")){
                         addToken(HTMLToken.TokenType.tagName);
                         state = State.closingTag;
                     }
@@ -78,12 +78,27 @@ public class HTMLParser {
                     }
                 }break;
                 case inAttribute:{
-                    if(chars[pos]=='>'||(chars[pos]=='?'&&chars[pos+1]=='>')){
+                    //<input value="<iframe height=498 width=510 src='http://player.youku.com/embed/XNTQwMTgxMTE2' frameborder=0 allowfullscreen></iframe>"/>
+                    if(chars[pos]=='>'||(isNextMatch("?>"))){
                         addToken(HTMLToken.TokenType.attribute);
                         state = singleNode? State.closingTag: State.openTagClosing;
-                    }else if(chars[pos]=='/'&&chars[pos+1]=='>'){
+                    }else if(chars[pos]=='\''){
+                        state = State.inAttributeSingleQuote;
+                    }else if(chars[pos]=='"'){
+                        state = State.inAttributeDoubleQuote;
+                    }else if(isNextMatch("/>")){
                         addToken(HTMLToken.TokenType.attribute);
                         state = State.closingTag;
+                    }
+                }break;
+                case inAttributeSingleQuote:{
+                    if(chars[pos]=='\''){
+                        state = State.inAttribute;
+                    }
+                }break;
+                case inAttributeDoubleQuote:{
+                    if(chars[pos]=='"'){
+                        state = State.inAttribute;
                     }
                 }break;
                 case openTagClosing:{
@@ -92,7 +107,7 @@ public class HTMLParser {
                         //<body>text</body>
                         addToken(HTMLToken.TokenType.openTagClose);
                         state = State.inTextContent;
-                    }else if(chars[pos]=='<'&&chars[pos+1]=='/'){
+                    }else if(isNextMatch("</")){
                         //<body></body>
                         addToken(HTMLToken.TokenType.openTagClose);
                         state = State.closingTag;
@@ -109,7 +124,7 @@ public class HTMLParser {
                             isInStyleOrScript = false;
                             state = State.closingTag;
                         }
-                    }else if(chars[pos]=='<'&&chars[pos+1]=='/'){
+                    }else if(isNextMatch("</")){
                         //<body>textContent</body>
                         addToken(HTMLToken.TokenType.textContent);
                         state = State.closingTag;
@@ -120,7 +135,7 @@ public class HTMLParser {
                     }
                 }break;
                 case closingTag:{
-                    if(chars[pos-1]=='>'&&chars[pos]=='<'&&chars[pos+1]=='/'){
+                    if(chars[pos-1]=='>'&&isNextMatch("</")){
                         //</body></html>
                         addToken(HTMLToken.TokenType.closeTag);
                     }else if(chars[pos-1]=='>'&&chars[pos]!='<'){
@@ -138,7 +153,7 @@ public class HTMLParser {
                     }
                 }break;
                 case inLiteral:{
-                    if(chars[pos]=='<'&&chars[pos+1]=='/'){
+                    if(isNextMatch("</")){
                         //</body> </html>
                         addToken(HTMLToken.TokenType.literal);
                         state = State.closingTag;
@@ -183,6 +198,7 @@ public class HTMLParser {
         tokenList.add(token);
     }
 
+    /**下一个字符串是否等于key*/
     private boolean isNextMatch(String key){
         ValidateUtil.checkNotEmpty(key);
         int last = pos;
@@ -215,11 +231,15 @@ public class HTMLParser {
         inTagName,
         /**在标签属性中*/
         inAttribute,
+        /**属性的单引号*/
+        inAttributeSingleQuote,
+        /**属性的双引号*/
+        inAttributeDoubleQuote,
         /**在开始标签结束标签中*/
         openTagClosing,
         /**在节点文本节点内容中*/
         inTextContent,
-        /**HTML中非文本节点的文本*/
+        /**在结束标签与开始标签之间的空白中*/
         inLiteral,
         /**在关闭标签中*/
         closingTag,

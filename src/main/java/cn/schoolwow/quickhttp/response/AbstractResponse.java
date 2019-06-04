@@ -134,12 +134,12 @@ public class AbstractResponse implements Response{
 
     @Override
     public boolean hasHeader(String name) {
-        return headerMap.containsKey(name);
+        return headerMap.containsKey(name.toLowerCase());
     }
 
     @Override
     public boolean hasHeaderWithValue(String name, String value) {
-        return headerMap.containsKey(name)&&headerMap.get(name).equals(value);
+        return hasHeader(name)&&headerMap.get(name.toLowerCase()).equals(value);
     }
 
     @Override

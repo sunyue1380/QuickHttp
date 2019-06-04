@@ -17,20 +17,12 @@ import java.util.Set;
 public class DocumentTest {
     private Logger logger = LoggerFactory.getLogger(DocumentTest.class);
 
-//    @Test
-//    public void testComposit() throws IOException {
-//        String html = FileUtils.readFileToString(new File("index.html"),"gb2312");
-//        Document document = Document.parse(html);
-//        Element element = document.select("#signin > div.bd > div.task-detail > ul").getFirst();
-//        System.out.println(element.text());
-//    }
-
     @Test
     public void testPart() throws IOException {
         String html = FileUtils.readFileToString(new File("index.html"),"utf-8");
         html = html.substring(0,4096);
         Document document = Document.parse(html);
-        Element element = document.select("meta[http-equiv=content-type], meta[charset]").getFirst();
+        Element element = document.select("meta[http-equiv=content-type], meta[charset]").first();
         Assert.assertEquals("meta",element.tagName());
     }
 

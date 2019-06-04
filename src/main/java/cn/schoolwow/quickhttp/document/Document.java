@@ -26,25 +26,23 @@ public class Document {
         return root;
     }
 
-    public Elements select(String cssQuery) {
-        Elements elements = new Elements();
-        Evaluator evaluator = QueryParser.parse(cssQuery);
-        //广度遍历
-        LinkedList<Element> linkedList = new LinkedList();
-        linkedList.offer(root);
-        while(!linkedList.isEmpty()){
-            Element element = linkedList.poll();
-            //注释标签
-            if(element.tagName()==null){
-                continue;
-            }
-            //排除掉注释标签
-            if(evaluator.matches(element)){
-                elements.add(element);
-            }
-            linkedList.addAll(element.childElements());
+    public String title(){
+        Elements titles = select("html > head > title");
+        if(titles==null||titles.size()==0){
+            return "";
         }
+        return titles.first().text();
+    }
 
-        return elements;
+    public Element selectFirst(String cssQuery) {
+        return select(cssQuery).first();
+    }
+
+    public Element selectLast(String cssQuery) {
+        return select(cssQuery).last();
+    }
+
+    public Elements select(String cssQuery) {
+        return root.select(cssQuery);
     }
 }

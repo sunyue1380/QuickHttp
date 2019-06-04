@@ -2,6 +2,8 @@ package cn.schoolwow.quickhttp.document.parse;
 
 import cn.schoolwow.quickhttp.document.element.Element;
 import cn.schoolwow.quickhttp.document.element.Elements;
+import cn.schoolwow.quickhttp.document.query.Evaluator;
+import cn.schoolwow.quickhttp.document.query.QueryParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,7 +13,7 @@ public class HTMLTokenParser {
     private Logger logger = LoggerFactory.getLogger(HTMLTokenParser.class);
     private List<HTMLToken> htmlTokenList;
     private AbstractElement root = null;
-    private AbstractElement current = root;
+    private List<AbstractElement> allElements = new ArrayList<>();
 
     public static Element parse(List<HTMLToken> htmlTokenList){
         Element root = new HTMLTokenParser(htmlTokenList).root;
@@ -25,15 +27,14 @@ public class HTMLTokenParser {
 
     /**语义分析*/
     private void parse(){
-        for(int i=0;i<htmlTokenList.size();i++){
-            HTMLToken htmlToken = htmlTokenList.get(i);
-            HTMLToken lastHtmlToken = i>0?htmlTokenList.get(i-1):null;
+        AbstractElement current = root;
+        for(HTMLToken htmlToken:htmlTokenList){
             switch(htmlToken.tokenType){
                 case openTag:{
                     AbstractElement newElement = new AbstractElement();
+                    allElements.add(newElement);
                     if(current==null){
                         root = newElement;
-                        current = root;
                     }else{
                         newElement.parent = current;
                         newElement.parent.childList.add(newElement);
@@ -53,30 +54,33 @@ public class HTMLTokenParser {
                     current.attributes.putAll(AttributeParser.parse(htmlToken.value));
                 }break;
                 case openTagClose:{
-                    if(htmlToken.value.contains("/>")){
-                        current.isSingleNode = true;
-                    }
                 }break;
                 case textContent:{
-                    current.ownOriginText = htmlToken.value;
-                    current.ownText = escapeOwnOriginText(current.ownOriginText);
+                    current.originTextNodes.add(htmlToken.value);
+                    current.textNodes.add(escapeOwnOriginText(htmlToken.value));
                 }break;
                 case closeTag:{
-                    //如果上一个Token是属性或者标签名,则为单标签
-                    if(lastHtmlToken.tokenType.equals(HTMLToken.TokenType.attribute)
-                    ||lastHtmlToken.tokenType.equals(HTMLToken.TokenType.tagName)){
+                    if(htmlToken.value.equals(">")||htmlToken.value.equals("/>")){
                         current.isSingleNode = true;
                     }
-                    if(current==null){
-                        continue;
+                    if(current.ownOriginText==null){
+                        StringBuilder sb = new StringBuilder("");
+                        for(String _ownOriginText:current.originTextNodes){
+                            sb.append(_ownOriginText);
+                        }
+                        current.ownOriginText = sb.toString();
+                    }
+                    if(current.ownText==null){
+                        StringBuilder sb = new StringBuilder("");
+                        for(String _ownText:current.textNodes){
+                            sb.append(_ownText);
+                        }
+                        current.ownText = sb.toString();
                     }
                     current = current.parent;
                 }break;
-                case literal:{
-                }break;
             }
         }
-        current = root;
     }
 
     private String escapeOwnOriginText(String ownOriginText){
@@ -111,10 +115,36 @@ public class HTMLTokenParser {
         private Elements allElements;
         /**所有节点文本*/
         private String textContent;
+        /**原始节点文本列表*/
+        private List<String> originTextNodes = new ArrayList<>();
+        /**转义节点文本列表*/
+        private List<String> textNodes = new ArrayList<>();
         /**节点在父节点的子节点中的索引*/
         private int elementSiblingpos = -1;
         /**用于深度遍历*/
         private boolean isVisited;
+
+        @Override
+        public Elements select(String cssQuery) {
+            Elements elements = new Elements();
+            Evaluator evaluator = QueryParser.parse(cssQuery);
+            //广度遍历
+            LinkedList<Element> linkedList = new LinkedList();
+            linkedList.offer(this);
+            while(!linkedList.isEmpty()){
+                Element element = linkedList.poll();
+                //注释标签
+                if(element.tagName()==null){
+                    continue;
+                }
+                //排除掉注释标签
+                if(evaluator.matches(element)){
+                    elements.add(element);
+                }
+                linkedList.addAll(element.childElements());
+            }
+            return elements;
+        }
 
         @Override
         public Map<String, String> attribute() {
@@ -172,8 +202,13 @@ public class HTMLTokenParser {
         }
 
         @Override
+        public List<String> textNodes() {
+            return textNodes;
+        }
+
+        @Override
         public String html() {
-            assureAllElements();
+            resetVisited();
             Stack<Element> stack = new Stack<>();
             for(Element child:childList){
                 stack.push(child);
@@ -183,12 +218,12 @@ public class HTMLTokenParser {
 
         @Override
         public String ownText() {
-            return ownText;
+            return this.ownText;
         }
 
         @Override
         public String outerHtml() {
-            assureAllElements();
+            resetVisited();
             Stack<Element> stack = new Stack<>();
             stack.push(this);
             return iterateStack(stack);
@@ -302,7 +337,7 @@ public class HTMLTokenParser {
             }else if(isSingleNode){
                 return "<"+tagName+attribute+"/>";
             }else{
-                return "<"+tagName+attribute+">"+ownOriginText.replaceAll("\r\n","换行符")+"</"+tagName+">";
+                return "<"+tagName+attribute+">"+ownOriginText==null?"":(ownOriginText.replaceAll("\r\n","换行符"))+"</"+tagName+">";
             }
         }
 
@@ -317,7 +352,7 @@ public class HTMLTokenParser {
                     }else if(element.isSingleNode){
                         sb.append("<"+element.tagName+element.attribute+"/>");
                     }else{
-                        sb.append("<"+element.tagName+element.attribute+">"+element.ownOriginText+"</"+element.tagName+">");
+                        sb.append("<"+element.tagName+element.attribute+">"+(element.ownOriginText==null?"":element.ownOriginText)+"</"+element.tagName+">");
                     }
                     //子节点
                     element.isVisited = true;
@@ -328,7 +363,7 @@ public class HTMLTokenParser {
                     element.isVisited = true;
                     stack.pop();
                 }else{
-                    sb.append("<"+element.tagName+element.attribute+">"+element.ownOriginText);
+                    sb.append("<"+element.tagName+element.attribute+">"+(element.ownOriginText==null?"":element.ownOriginText));
                     //从右往左压入子节点
                     Elements childElements = element.childElements();
                     for(int i=childElements.size()-1;i>=0;i--){
@@ -348,6 +383,18 @@ public class HTMLTokenParser {
             return true;
         }
 
+        private void resetVisited(){
+            Stack<Element> stack = new Stack<>();
+            stack.push(this);
+            while(!stack.isEmpty()){
+                AbstractElement element = (AbstractElement) stack.pop();
+                element.isVisited = false;
+                for(Element child:element.childList){
+                    stack.push(child);
+                }
+            }
+        }
+
         private void assureAllElements(){
             if(allElements==null){
                 allElements = new Elements();
@@ -363,9 +410,7 @@ public class HTMLTokenParser {
                 }
                 logger.trace("[DOM树]{}",allElements);
             }
-            for(Element element:allElements){
-                ((AbstractElement)element).isVisited = false;
-            }
+            resetVisited();
         }
     }
 }

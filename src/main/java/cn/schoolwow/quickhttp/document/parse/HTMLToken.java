@@ -16,8 +16,8 @@ public class HTMLToken {
         attribute("标签属性"),
         openTagClose("开始标签结束"),
         textContent("标签文本内容"),
-        literal("结束标签与开始标签之间文本"),
         closeTag("结束标签"),
+        literal("在结束标签与开始标签之间的空白中"),
         commentTag("注释标签");
 
         private String name;
@@ -26,5 +26,4 @@ public class HTMLToken {
             this.name = name;
         }
     }
-
 }

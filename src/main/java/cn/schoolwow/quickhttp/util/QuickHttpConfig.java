@@ -11,6 +11,8 @@ public class QuickHttpConfig {
     public static Proxy proxy;
     /**默认重试次数*/
     public static int retryTimes = 3;
+    /**默认最大重定向次数*/
+    public static int maxRedirectTimes = 10;
     /**过滤器*/
     public static Interceptor interceptor;
 

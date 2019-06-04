@@ -116,11 +116,14 @@ public class AttributeParser {
                     }
                 }break;
                 case inDoubleQuoteEnd:{
-                    if(pos==chars.length-1){
+                    if(chars[pos-1]=='\"'){
                         addAttribute(AttributeType.quoteKeyValue);
-                    }else if(chars[pos]==' '){
+                    }
+                    if(chars[pos]==' '){
                         state = State.inSpace;
-                        addAttribute(AttributeType.quoteKeyValue);
+                    }else if(isKeyValueStart()){
+                        //curname="ygp"data="{'pid': '73868', 'platform': 'pc'}"
+                        state = State.inKey;
                     }
                 }break;
             }
@@ -131,7 +134,7 @@ public class AttributeParser {
 
     private void addAttribute(AttributeType attributeType){
         int count = pos-sectionStart;
-        if(pos==chars.length-1){
+        if(pos==chars.length-1&&chars[pos]!=' '){
             count++;
         }
         String value = new String(chars,sectionStart,count);

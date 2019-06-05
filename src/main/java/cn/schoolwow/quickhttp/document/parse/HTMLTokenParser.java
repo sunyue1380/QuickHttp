@@ -63,22 +63,24 @@ public class HTMLTokenParser {
                     if(htmlToken.value.equals(">")||htmlToken.value.equals("/>")){
                         current.isSingleNode = true;
                     }
-                    if(current.ownOriginText==null){
-                        StringBuilder sb = new StringBuilder("");
-                        for(String _ownOriginText:current.originTextNodes){
-                            sb.append(_ownOriginText);
-                        }
-                        current.ownOriginText = sb.toString();
-                    }
-                    if(current.ownText==null){
-                        StringBuilder sb = new StringBuilder("");
-                        for(String _ownText:current.textNodes){
-                            sb.append(_ownText);
-                        }
-                        current.ownText = sb.toString();
-                    }
                     current = current.parent;
                 }break;
+            }
+        }
+        for(AbstractElement element:allElements){
+            if(element.ownOriginText==null){
+                StringBuilder sb = new StringBuilder("");
+                for(String _ownText:element.originTextNodes){
+                    sb.append(_ownText);
+                }
+                element.ownOriginText = sb.toString();
+            }
+            if(element.ownText==null){
+                StringBuilder sb = new StringBuilder("");
+                for(String _ownText:element.textNodes){
+                    sb.append(_ownText);
+                }
+                element.ownText = sb.toString();
             }
         }
     }
@@ -105,12 +107,11 @@ public class HTMLTokenParser {
         /**属性文本*/
         private String attribute = "";
         /**原始文本内容*/
-        private String ownOriginText = "";
+        private String ownOriginText;
         /**转义后文本内容*/
-        private String ownText = "";
+        private String ownText;
         /**子节点*/
         private List<Element> childList = new ArrayList<>();
-
         /**深度遍历后的元素*/
         private Elements allElements;
         /**所有节点文本*/
@@ -337,7 +338,7 @@ public class HTMLTokenParser {
             }else if(isSingleNode){
                 return "<"+tagName+attribute+"/>";
             }else{
-                return "<"+tagName+attribute+">"+ownOriginText==null?"":(ownOriginText.replaceAll("\r\n","换行符"))+"</"+tagName+">";
+                return "<"+tagName+attribute+">"+ownOriginText.replaceAll("\r\n","换行符")+"</"+tagName+">";
             }
         }
 
@@ -352,7 +353,7 @@ public class HTMLTokenParser {
                     }else if(element.isSingleNode){
                         sb.append("<"+element.tagName+element.attribute+"/>");
                     }else{
-                        sb.append("<"+element.tagName+element.attribute+">"+(element.ownOriginText==null?"":element.ownOriginText)+"</"+element.tagName+">");
+                        sb.append("<"+element.tagName+element.attribute+">"+element.ownOriginText+"</"+element.tagName+">");
                     }
                     //子节点
                     element.isVisited = true;
@@ -363,7 +364,7 @@ public class HTMLTokenParser {
                     element.isVisited = true;
                     stack.pop();
                 }else{
-                    sb.append("<"+element.tagName+element.attribute+">"+(element.ownOriginText==null?"":element.ownOriginText));
+                    sb.append("<"+element.tagName+element.attribute+">"+element.ownOriginText);
                     //从右往左压入子节点
                     Elements childElements = element.childElements();
                     for(int i=childElements.size()-1;i>=0;i--){

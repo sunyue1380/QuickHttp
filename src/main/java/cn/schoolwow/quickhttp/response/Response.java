@@ -12,6 +12,9 @@ import java.util.List;
 import java.util.Map;
 
 public interface Response {
+    /**获取返回网址*/
+    String url();
+
     /**获取状态码*/
     int statusCode();
 

@@ -113,6 +113,11 @@ public class AbstractResponse implements Response{
     }
 
     @Override
+    public String url() {
+        return httpURLConnection.getURL().toString();
+    }
+
+    @Override
     public int statusCode() {
         return this.statusCode;
     }

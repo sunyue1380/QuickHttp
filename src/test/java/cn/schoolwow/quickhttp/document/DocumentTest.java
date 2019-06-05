@@ -1,30 +1,17 @@
 package cn.schoolwow.quickhttp.document;
 
-import cn.schoolwow.quickhttp.document.element.Element;
 import cn.schoolwow.quickhttp.document.element.Elements;
-import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
 public class DocumentTest {
     private Logger logger = LoggerFactory.getLogger(DocumentTest.class);
-
-    @Test
-    public void testPart() throws IOException {
-        String html = FileUtils.readFileToString(new File("index.html"),"utf-8");
-        html = html.substring(0,4096);
-        Document document = Document.parse(html);
-        Element element = document.select("meta[http-equiv=content-type], meta[charset]").first();
-        Assert.assertEquals("meta",element.tagName());
-    }
 
     @Test
     public void testEvaluator() {

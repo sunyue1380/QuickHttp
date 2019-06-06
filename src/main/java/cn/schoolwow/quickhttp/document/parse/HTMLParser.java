@@ -81,6 +81,10 @@ public class HTMLParser {
                     //<input value="<iframe height=498 width=510 src='http://player.youku.com/embed/XNTQwMTgxMTE2' frameborder=0 allowfullscreen></iframe>"/>
                     if(chars[pos]=='>'||(isNextMatch("?>"))){
                         addToken(HTMLToken.TokenType.attribute);
+                        if((chars[pos]=='>'&&pos==chars.length-1)||(chars[pos]=='?'&&pos==chars.length-2)){
+                            sectionStart = pos;
+                            addToken(HTMLToken.TokenType.closeTag);
+                        }
                         state = singleNode? State.closingTag: State.openTagClosing;
                     }else if(chars[pos]=='\''){
                         state = State.inAttributeSingleQuote;

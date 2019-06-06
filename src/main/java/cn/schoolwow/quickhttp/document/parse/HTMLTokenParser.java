@@ -51,7 +51,9 @@ public class HTMLTokenParser {
                 }break;
                 case attribute:{
                     current.attribute = htmlToken.value;
-                    current.attributes.putAll(AttributeParser.parse(htmlToken.value));
+                    if(!"!DOCTYPE".equals(current.tagName.toUpperCase())){
+                        current.attributes.putAll(AttributeParser.parse(htmlToken.value));
+                    }
                 }break;
                 case openTagClose:{
                 }break;

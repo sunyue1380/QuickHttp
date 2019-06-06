@@ -276,10 +276,7 @@ public class QueryParser {
             while(last<chars.length-1&&chars[last]!=')'){
                 last++;
             }
-            int count = last-pos;
-            if(last==chars.length-1){
-                count++;
-            }
+            int count = last-pos+1;
             String content = new String(chars,pos,count);
             String data = content.substring(content.indexOf("(")+1,content.lastIndexOf(")"));
             String[] tokens = data.split("n");

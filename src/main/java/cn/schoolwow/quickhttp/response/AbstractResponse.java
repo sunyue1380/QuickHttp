@@ -239,11 +239,7 @@ public class AbstractResponse implements Response{
 
     @Override
     public BufferedInputStream bodyStream() {
-        try {
-            return bufferedInputStream;
-        } finally {
-            close();
-        }
+        return bufferedInputStream;
     }
 
     @Override

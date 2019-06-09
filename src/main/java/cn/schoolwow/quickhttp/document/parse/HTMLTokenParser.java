@@ -38,6 +38,7 @@ public class HTMLTokenParser {
                     }else{
                         newElement.parent = current;
                         newElement.parent.childList.add(newElement);
+                        newElement.parent.childTextList.add(newElement);
                     }
                     current = newElement;
                 }break;
@@ -58,8 +59,15 @@ public class HTMLTokenParser {
                 case openTagClose:{
                 }break;
                 case textContent:{
-                    current.originTextNodes.add(htmlToken.value);
-                    current.textNodes.add(escapeOwnOriginText(htmlToken.value));
+                    if(current!=null){
+                        //<!DOCTYPE HTML> 这里是空白 <head>
+                        AbstractElement textElement = new AbstractElement();
+                        textElement.isTextNode = true;
+                        textElement.ownOriginText = htmlToken.value;
+                        textElement.ownText = escapeOwnOriginText(htmlToken.value);
+                        current.childTextList.add(textElement);
+                        current.textList.add(textElement);
+                    }
                 }break;
                 case closeTag:{
                     if(htmlToken.value.equals(">")||htmlToken.value.equals("/>")){
@@ -70,20 +78,19 @@ public class HTMLTokenParser {
             }
         }
         for(AbstractElement element:allElements){
-            if(element.ownOriginText==null){
-                StringBuilder sb = new StringBuilder("");
-                for(String _ownText:element.originTextNodes){
-                    sb.append(_ownText);
-                }
-                element.ownOriginText = sb.toString();
+            if(element.isComment){
+                continue;
             }
-            if(element.ownText==null){
-                StringBuilder sb = new StringBuilder("");
-                for(String _ownText:element.textNodes){
-                    sb.append(_ownText);
-                }
-                element.ownText = sb.toString();
+            StringBuilder ownTextBuilder = new StringBuilder("");
+            StringBuilder originTextBuilder = new StringBuilder("");
+            for(Element e:element.textList){
+                AbstractElement ee = (AbstractElement) e;
+                ownTextBuilder.append(ee.ownText);
+                originTextBuilder.append(ee.ownOriginText);
             }
+            element.ownText = ownTextBuilder.toString();
+            element.ownOriginText = originTextBuilder.toString();
+            element.assureAllElements();
         }
     }
 
@@ -102,6 +109,8 @@ public class HTMLTokenParser {
         private boolean isSingleNode;
         /**是否是注释节点*/
         private boolean isComment;
+        /**是否是文本节点*/
+        private boolean isTextNode;
         /**父节点*/
         private AbstractElement parent;
         /**属性*/
@@ -109,23 +118,26 @@ public class HTMLTokenParser {
         /**属性文本*/
         private String attribute = "";
         /**原始文本内容*/
-        private String ownOriginText;
+        private String ownOriginText = "";
         /**转义后文本内容*/
-        private String ownText;
-        /**子节点*/
+        private String ownText = "";
+        /**子元素*/
         private List<Element> childList = new ArrayList<>();
-        /**深度遍历后的元素*/
-        private Elements allElements;
-        /**所有节点文本*/
+        /**子元素节点*/
+        private Elements textList = new Elements();
+        /**子元素(包含文本元素)*/
+        private List<Element> childTextList = new ArrayList<>();
+        /**深度遍历后的子元素(包含文本元素)*/
+        private Elements childTextElements;
+        /**深度遍历后的子元素*/
+        private Elements childElements;
+        /**深度遍历后的文本元素*/
+        private Elements textElements;
         private String textContent;
-        /**原始节点文本列表*/
-        private List<String> originTextNodes = new ArrayList<>();
-        /**转义节点文本列表*/
-        private List<String> textNodes = new ArrayList<>();
+        private String outerHtml;
+        private String html;
         /**节点在父节点的子节点中的索引*/
         private int elementSiblingpos = -1;
-        /**用于深度遍历*/
-        private boolean isVisited;
 
         @Override
         public Elements select(String cssQuery) {
@@ -195,9 +207,8 @@ public class HTMLTokenParser {
             if(textContent!=null){
                 return textContent;
             }
-            assureAllElements();
             StringBuilder builder = new StringBuilder();
-            for(Element element:allElements){
+            for(Element element:textElements){
                 builder.append(element.ownText());
             }
             textContent = builder.toString();
@@ -205,18 +216,16 @@ public class HTMLTokenParser {
         }
 
         @Override
-        public List<String> textNodes() {
-            return textNodes;
+        public Elements textElement() {
+            return textList;
         }
 
         @Override
         public String html() {
-            resetVisited();
-            Stack<Element> stack = new Stack<>();
-            for(Element child:childList){
-                stack.push(child);
+            if(this.html==null){
+                this.html = iterateChildTextElements(this.childTextElements.subList(1,this.childTextElements.size()-1));
             }
-            return iterateStack(stack);
+            return this.html;
         }
 
         @Override
@@ -226,10 +235,10 @@ public class HTMLTokenParser {
 
         @Override
         public String outerHtml() {
-            resetVisited();
-            Stack<Element> stack = new Stack<>();
-            stack.push(this);
-            return iterateStack(stack);
+            if(this.outerHtml==null){
+                this.outerHtml = iterateChildTextElements(this.childTextElements);
+            }
+            return this.outerHtml;
         }
 
         @Override
@@ -329,8 +338,7 @@ public class HTMLTokenParser {
 
         @Override
         public Elements getAllElements() {
-            assureAllElements();
-            return allElements;
+            return childElements;
         }
 
         @Override
@@ -345,75 +353,67 @@ public class HTMLTokenParser {
         }
 
         /**遍历栈,生成html字符串*/
-        private String iterateStack(Stack<Element> stack){
-            StringBuilder sb = new StringBuilder();
-            while(!stack.isEmpty()){
-                AbstractElement element = (AbstractElement) stack.peek();
-                if(element.childList.isEmpty()){
-                    if(element.isComment){
-                        sb.append("<"+element.ownText+">");
-                    }else if(element.isSingleNode){
-                        sb.append("<"+element.tagName+element.attribute+"/>");
-                    }else{
-                        sb.append("<"+element.tagName+element.attribute+">"+element.ownOriginText+"</"+element.tagName+">");
+        private String iterateChildTextElements(List<Element> childTextElements){
+            StringBuilder builder = new StringBuilder();
+            Stack<AbstractElement> stack = new Stack();
+            for(int i=0;i<childTextElements.size();i++){
+                AbstractElement abstractElement = (AbstractElement) childTextElements.get(i);
+                if(abstractElement.isComment){
+                    builder.append("<"+abstractElement.ownOriginText+">");
+                }else if(abstractElement.isTextNode){
+                    if(i>0){
+                        //如果上一个元素也是文本元素,则放入结束标签
+                        AbstractElement previousElement = (AbstractElement) childTextElements.get(i-1);
+                        if(previousElement.isTextNode){
+                            AbstractElement lastElement = stack.pop();
+                            if(!lastElement.isSingleNode){
+                                builder.append("</"+lastElement.tagName+">");
+                            }
+                        }
                     }
-                    //子节点
-                    element.isVisited = true;
-                    stack.pop();
-                }else if(isAllVisited(element.childList)){
-                    //非叶节点但所有子节点已经访问完毕
-                    sb.append("</"+element.tagName+">");
-                    element.isVisited = true;
-                    stack.pop();
+                    //放入文本
+                    builder.append(abstractElement.ownOriginText);
                 }else{
-                    sb.append("<"+element.tagName+element.attribute+">"+element.ownOriginText);
-                    //从右往左压入子节点
-                    Elements childElements = element.childElements();
-                    for(int i=childElements.size()-1;i>=0;i--){
-                        stack.push(childElements.get(i));
+                    //放入标签
+                    if(abstractElement.isSingleNode){
+                        builder.append("<"+abstractElement.tagName+abstractElement.attribute+"/>");
+                    }else{
+                        builder.append("<"+abstractElement.tagName+abstractElement.attribute+">");
+                        stack.push(abstractElement);
                     }
                 }
             }
-            return sb.toString();
-        }
-
-        private boolean isAllVisited(List<Element> childList){
-            for(Element element:childList){
-                if(!((AbstractElement)element).isVisited){
-                    return false;
+            while(!stack.isEmpty()){
+                AbstractElement element = stack.pop();
+                if(element.isSingleNode){
+                    builder.append("/>");
+                }else{
+                    builder.append("</"+element.tagName+">");
                 }
             }
-            return true;
+            return builder.toString();
         }
 
-        private void resetVisited(){
-            Stack<Element> stack = new Stack<>();
+        /**深度遍历子元素形成列表*/
+        private void assureAllElements(){
+            childTextElements = new Elements();
+            textElements = new Elements();
+            childElements = new Elements();
+            Stack<AbstractElement> stack = new Stack<>();
             stack.push(this);
             while(!stack.isEmpty()){
-                AbstractElement element = (AbstractElement) stack.pop();
-                element.isVisited = false;
-                for(Element child:element.childList){
-                    stack.push(child);
+                AbstractElement element = stack.pop();
+                childTextElements.add(element);
+                if(element.isTextNode){
+                    textElements.add(element);
+                }else{
+                    childElements.add(element);
+                }
+                List<Element> childElements = element.childTextList;
+                for(int i=childElements.size()-1;i>=0;i--){
+                    stack.push((AbstractElement) childElements.get(i));
                 }
             }
-        }
-
-        private void assureAllElements(){
-            if(allElements==null){
-                allElements = new Elements();
-                Stack<Element> stack = new Stack<>();
-                stack.push(this);
-                while(!stack.isEmpty()){
-                    Element element = stack.pop();
-                    allElements.add(element);
-                    Elements childElements = element.childElements();
-                    for(int i=childElements.size()-1;i>=0;i--){
-                        stack.push(childElements.get(i));
-                    }
-                }
-                logger.trace("[DOM树]{}",allElements);
-            }
-            resetVisited();
         }
     }
 }

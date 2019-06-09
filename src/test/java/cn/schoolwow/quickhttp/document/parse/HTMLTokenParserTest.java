@@ -15,10 +15,10 @@ public class HTMLTokenParserTest {
     private Logger logger = LoggerFactory.getLogger(HTMLTokenParser.class);
     @Test
     public void testIndex() throws IOException {
-//        String html = FileUtils.readFileToString(new File("index.html"),"utf-8");
-//        List<HTMLToken> htmlTokenList = HTMLParser.parse(html);
-//        Element element = HTMLTokenParser.parse(htmlTokenList);
-//        FileUtils.writeStringToFile(new File("target.html"),element.outerHtml(),"utf-8");
+        String html = FileUtils.readFileToString(new File("index.html"),"utf-8");
+        List<HTMLToken> htmlTokenList = HTMLParser.parse(html);
+        Element element = HTMLTokenParser.parse(htmlTokenList);
+        FileUtils.writeStringToFile(new File("target.html"),element.outerHtml(),"utf-8");
     }
 
     @Test
@@ -92,6 +92,14 @@ public class HTMLTokenParserTest {
     @Test
     public void testInput() {
         String html = "<input value=\"<iframe src='http://player.youku.com/embed/XNTQwMTgxMTE2' allowfullscreen></iframe>\"/>";
+        List<HTMLToken> htmlTokenList = HTMLParser.parse(html);
+        Element root = HTMLTokenParser.parse(htmlTokenList);
+        Assert.assertEquals(html,root.outerHtml());
+    }
+
+    @Test
+    public void testTextNodes() {
+        String html = "<span>已连续签到<em>22</em>天，再坚持签到<em>8</em>天，可获得<em>5</em>张下载券</span>";
         List<HTMLToken> htmlTokenList = HTMLParser.parse(html);
         Element root = HTMLTokenParser.parse(htmlTokenList);
         Assert.assertEquals(html,root.outerHtml());

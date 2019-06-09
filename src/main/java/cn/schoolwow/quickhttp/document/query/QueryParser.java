@@ -53,6 +53,13 @@ public class QueryParser {
                 pos++;
             }
         }
+        if(!evaluatorStack.isEmpty()){
+            CombiningEvaluator.And lastAnd = new CombiningEvaluator.And(new ArrayList<>());
+            while(!evaluatorStack.isEmpty()&&!(evaluatorStack.peek() instanceof StructuralEvaluator)){
+                lastAnd.evaluatorList.add(evaluatorStack.pop());
+            }
+            evaluatorStack.push(lastAnd);
+        }
         logger.trace("[原始选择器列表]{}",evaluatorStack);
         //如果Or选择器存在,则将栈内剩余元素包括成And选择器加入到Or选择器中
         if(or!=null){
@@ -210,25 +217,24 @@ public class QueryParser {
                 last++;
             }
             String content = new String(chars,pos,last-pos);
-            //弹出栈元素,直到栈为空或者栈顶元素为StructuralEvaluator类
-            CombiningEvaluator.And subEvaluator = new CombiningEvaluator.And(new ArrayList<>());
+            //弹出所有非StructuralEvaluator
+            List<Evaluator> evaluatorList = new ArrayList<>();
             while(!evaluatorStack.isEmpty()&&!(evaluatorStack.peek() instanceof StructuralEvaluator)){
-                subEvaluator.evaluatorList.add(evaluatorStack.pop());
+                evaluatorList.add(evaluatorStack.pop());
             }
-            CombiningEvaluator.And andEvaluator = new CombiningEvaluator.And(new ArrayList<>());
-            andEvaluator.evaluatorList.add(subEvaluator);
-            //再将栈顶的StructuralEvaluator作为and的子元素加入
+            Evaluator lastEvaluator = null;
+            if(evaluatorList.size()==1){
+                lastEvaluator = evaluatorList.get(0);
+            }else{
+                lastEvaluator = new CombiningEvaluator.And(evaluatorList);
+            }
             if(!evaluatorStack.isEmpty()){
-                andEvaluator.evaluatorList.add(evaluatorStack.pop());
+                CombiningEvaluator.And and = new CombiningEvaluator.And(new ArrayList<>());
+                and.evaluatorList.add(lastEvaluator);
+                and.evaluatorList.add(evaluatorStack.pop());
+                lastEvaluator = and;
             }
-            Evaluator lastEvaluator = andEvaluator;
-            if(andEvaluator.evaluatorList.size()==1){
-                lastEvaluator = andEvaluator.evaluatorList.get(0);
-                CombiningEvaluator.And andLastEvaluator = (CombiningEvaluator.And) lastEvaluator;
-                if(andLastEvaluator.evaluatorList.size()==1){
-                    lastEvaluator = andLastEvaluator.evaluatorList.get(0);
-                }
-            }
+
             StructuralEvaluator evaluator = null;
             if(content.contains(">")){
                 evaluator = new StructuralEvaluator.ImmediateParent(lastEvaluator);

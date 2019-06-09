@@ -142,10 +142,6 @@ public class HTMLParser {
                     if(chars[pos-1]=='>'&&isNextMatch("</")){
                         //</body></html>
                         addToken(HTMLToken.TokenType.closeTag);
-                    }else if(chars[pos-1]=='>'&&chars[pos]!='<'){
-                        //</body>  </html>
-                        addToken(HTMLToken.TokenType.closeTag);
-                        state = State.inLiteral;
                     }else if(chars[pos-1]=='>'&&chars[pos]=='<'){
                         //</body><script>
                         addToken(HTMLToken.TokenType.closeTag);
@@ -154,17 +150,10 @@ public class HTMLParser {
                         //</html>$
                         addToken(HTMLToken.TokenType.closeTag);
                         break;
-                    }
-                }break;
-                case inLiteral:{
-                    if(isNextMatch("</")){
-                        //</body> </html>
-                        addToken(HTMLToken.TokenType.literal);
-                        state = State.closingTag;
-                    }else if(chars[pos]=='<'){
-                        //</body>   <p>
-                        addToken(HTMLToken.TokenType.literal);
-                        state = State.openingTag;
+                    }else if(chars[pos-1]=='>'){
+                        //</body>  </html>
+                        addToken(HTMLToken.TokenType.closeTag);
+                        state = State.inTextContent;
                     }
                 }break;
             }
@@ -243,8 +232,6 @@ public class HTMLParser {
         openTagClosing,
         /**在节点文本节点内容中*/
         inTextContent,
-        /**在结束标签与开始标签之间的空白中*/
-        inLiteral,
         /**在关闭标签中*/
         closingTag,
         /**在注释中*/

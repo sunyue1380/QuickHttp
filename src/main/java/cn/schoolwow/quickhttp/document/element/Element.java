@@ -1,6 +1,5 @@
 package cn.schoolwow.quickhttp.document.element;
 
-import java.util.List;
 import java.util.Map;
 
 public interface Element {
@@ -20,7 +19,7 @@ public interface Element {
     /**获取子节点文本*/
     String text();
     /**获取文本节点列表*/
-    List<String> textNodes();
+    Elements textElement();
     /**获取html内容*/
     String html();
     /**获取当前节点文本*/

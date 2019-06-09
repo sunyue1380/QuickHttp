@@ -142,4 +142,11 @@ public class QueryParserTest {
         Evaluator evaluator = QueryParser.parse(cssQuery);
         Assert.assertEquals(CombiningEvaluator.Or.class,evaluator.getClass());
     }
+
+    @Test
+    public void testComposit() {
+        String cssQuery = "#main > div.mycomment-bd > div.mycomment-table > table > tbody:nth-child(3) > tr.tr-bd > td:nth-child(4) > div > a.btn-def";
+        Evaluator evaluator = QueryParser.parse(cssQuery);
+        System.out.println(evaluator);
+    }
 }

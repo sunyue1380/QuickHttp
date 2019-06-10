@@ -4,6 +4,8 @@ import java.util.Map;
 
 public interface Element {
     Elements select(String cssQuery);
+    Element selectFirst(String cssQuery);
+    Element selectLast(String cssQuery);
     /**获取属性*/
     Map<String,String> attribute();
     /**获取id*/

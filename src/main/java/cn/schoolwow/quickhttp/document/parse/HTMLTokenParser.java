@@ -65,6 +65,9 @@ public class HTMLTokenParser {
                         textElement.isTextNode = true;
                         textElement.ownOriginText = htmlToken.value;
                         textElement.ownText = escapeOwnOriginText(htmlToken.value);
+                        textElement.parent = current;
+                        textElement.outerHtml = textElement.ownText;
+                        textElement.textContent = textElement.ownText;
                         current.childTextList.add(textElement);
                         current.textList.add(textElement);
                     }
@@ -72,8 +75,11 @@ public class HTMLTokenParser {
                 case closeTag:{
                     if(htmlToken.value.equals(">")||htmlToken.value.equals("/>")){
                         current.isSingleNode = true;
+                        current = current.parent;
+                    }else if(("</"+current.tagName+">").equals(htmlToken.value)){
+                        //检查结束标签标签名
+                        current = current.parent;
                     }
-                    current = current.parent;
                 }break;
             }
         }
@@ -159,6 +165,16 @@ public class HTMLTokenParser {
                 linkedList.addAll(element.childElements());
             }
             return elements;
+        }
+
+        @Override
+        public Element selectFirst(String cssQuery) {
+            return select(cssQuery).first();
+        }
+
+        @Override
+        public Element selectLast(String cssQuery) {
+            return select(cssQuery).last();
         }
 
         @Override
@@ -358,28 +374,29 @@ public class HTMLTokenParser {
             Stack<AbstractElement> stack = new Stack();
             for(int i=0;i<childTextElements.size();i++){
                 AbstractElement abstractElement = (AbstractElement) childTextElements.get(i);
+                while(!stack.isEmpty()&&abstractElement.parent!=null&&stack.peek()!=abstractElement.parent){
+                    builder.append("</"+stack.pop().tagName+">");
+                }
                 if(abstractElement.isComment){
                     builder.append("<"+abstractElement.ownOriginText+">");
                 }else if(abstractElement.isTextNode){
-                    if(i>0){
-                        //如果上一个元素也是文本元素,则放入结束标签
-                        AbstractElement previousElement = (AbstractElement) childTextElements.get(i-1);
-                        if(previousElement.isTextNode){
-                            AbstractElement lastElement = stack.pop();
-                            if(!lastElement.isSingleNode){
-                                builder.append("</"+lastElement.tagName+">");
-                            }
-                        }
-                    }
-                    //放入文本
                     builder.append(abstractElement.ownOriginText);
                 }else{
                     //放入标签
                     if(abstractElement.isSingleNode){
-                        builder.append("<"+abstractElement.tagName+abstractElement.attribute+"/>");
+                        builder.append("<"+abstractElement.tagName+abstractElement.attribute);
+                        if(!abstractElement.tagName.startsWith("!")&&!abstractElement.tagName.startsWith("?")){
+                            //排除特殊标签
+                            builder.append("/");
+                        }
+                        builder.append(">");
                     }else{
                         builder.append("<"+abstractElement.tagName+abstractElement.attribute+">");
-                        stack.push(abstractElement);
+                        if(abstractElement.childTextList.size()==0){
+                            builder.append("</"+abstractElement.tagName+">");
+                        }else{
+                            stack.push(abstractElement);
+                        }
                     }
                 }
             }

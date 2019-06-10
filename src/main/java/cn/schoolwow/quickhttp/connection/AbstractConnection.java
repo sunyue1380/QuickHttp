@@ -381,11 +381,13 @@ public class AbstractConnection implements Connection{
             String boundary = null;
             if(!dataFileMap.isEmpty()){
                 boundary = mimeBoundary();
-                httpURLConnection.setRequestProperty("Content-Type","multipart/form-data; boundary="+boundary);
+                httpURLConnection.setRequestProperty("Content-Type","multipart/form-data; boundary="+boundary+"; charset="+charset);
                 httpURLConnection.setChunkedStreamingMode(0);
             }else if(requestBody!=null&&!requestBody.equals("")){
+                httpURLConnection.setRequestProperty("Content-Type","application/x-www-form-urlencoded; charset="+charset);
                 httpURLConnection.setFixedLengthStreamingMode(requestBody.length());
             }else if(!dataMap.isEmpty()){
+                httpURLConnection.setRequestProperty("Content-Type","application/x-www-form-urlencoded; charset="+charset);
                 httpURLConnection.setFixedLengthStreamingMode(parameterBuilder.toString().length());
             }
 

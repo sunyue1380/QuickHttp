@@ -9,7 +9,7 @@ import java.util.List;
 
 public class HTMLParser {
     private Logger logger = LoggerFactory.getLogger(HTMLParser.class);
-    private static final String[] singleNodeList = {"br","hr","img","input","param","meta","link","!doctype","?xml"};
+    private static final String[] singleNodeList = {"br","hr","img","input","param","meta","link","!doctype","?xml","col"};
     private char[] chars; //输入参数
     private int pos = 0; //当前位置
     private int sectionStart=0; //token起始位置

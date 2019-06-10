@@ -4,12 +4,8 @@ import cn.schoolwow.quickhttp.document.element.Element;
 import cn.schoolwow.quickhttp.document.element.Elements;
 import cn.schoolwow.quickhttp.document.parse.HTMLParser;
 import cn.schoolwow.quickhttp.document.parse.HTMLTokenParser;
-import cn.schoolwow.quickhttp.document.query.Evaluator;
-import cn.schoolwow.quickhttp.document.query.QueryParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.LinkedList;
 
 public class Document {
     Logger logger = LoggerFactory.getLogger(Element.class);
@@ -35,11 +31,11 @@ public class Document {
     }
 
     public Element selectFirst(String cssQuery) {
-        return select(cssQuery).first();
+        return root.selectFirst(cssQuery);
     }
 
     public Element selectLast(String cssQuery) {
-        return select(cssQuery).last();
+        return root.selectLast(cssQuery);
     }
 
     public Elements select(String cssQuery) {

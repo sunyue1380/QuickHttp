@@ -19,6 +19,7 @@ public class HTMLTokenParserTest {
         List<HTMLToken> htmlTokenList = HTMLParser.parse(html);
         Element element = HTMLTokenParser.parse(htmlTokenList);
         FileUtils.writeStringToFile(new File("target.html"),element.outerHtml(),"utf-8");
+        Assert.assertEquals(html,element.outerHtml());
     }
 
     @Test
@@ -90,6 +91,14 @@ public class HTMLTokenParserTest {
     }
 
     @Test
+    public void testMissing2() {
+        String html = "<html><body></table></body></html>";
+        List<HTMLToken> htmlTokenList = HTMLParser.parse(html);
+        Element root = HTMLTokenParser.parse(htmlTokenList);
+        Assert.assertEquals("<html><body></body></html>",root.outerHtml());
+    }
+
+    @Test
     public void testInput() {
         String html = "<input value=\"<iframe src='http://player.youku.com/embed/XNTQwMTgxMTE2' allowfullscreen></iframe>\"/>";
         List<HTMLToken> htmlTokenList = HTMLParser.parse(html);
@@ -98,7 +107,7 @@ public class HTMLTokenParserTest {
     }
 
     @Test
-    public void testTextNodes() {
+    public void testMultiTextNode() {
         String html = "<span>已连续签到<em>22</em>天，再坚持签到<em>8</em>天，可获得<em>5</em>张下载券</span>";
         List<HTMLToken> htmlTokenList = HTMLParser.parse(html);
         Element root = HTMLTokenParser.parse(htmlTokenList);

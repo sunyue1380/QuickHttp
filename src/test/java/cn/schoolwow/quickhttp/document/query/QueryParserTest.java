@@ -1,14 +1,31 @@
 package cn.schoolwow.quickhttp.document.query;
 
+import cn.schoolwow.quickhttp.document.element.Element;
+import cn.schoolwow.quickhttp.document.element.Elements;
+import cn.schoolwow.quickhttp.document.parse.HTMLParser;
+import cn.schoolwow.quickhttp.document.parse.HTMLToken;
+import cn.schoolwow.quickhttp.document.parse.HTMLTokenParser;
+import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public class QueryParserTest {
+    @Test
+    public void testIndex() throws IOException {
+        String html = FileUtils.readFileToString(new File("index.html"),"utf-8");
+        List<HTMLToken> htmlTokenList = HTMLParser.parse(html);
+        Element element = HTMLTokenParser.parse(htmlTokenList);
+        Elements as = element.select("#main > div.mycomment-bd > div.mycomment-table > table > tbody > tr.tr-bd > td:nth-child(4) > div > a.btn-def");
+        Assert.assertEquals(2,as.size());
+    }
+
     @Test
     public void testEvaluator() {
         Map<String,Class> evaluatorMap = new LinkedHashMap<>();
@@ -141,12 +158,5 @@ public class QueryParserTest {
         String cssQuery = "meta[http-equiv=content-type], meta[charset]";
         Evaluator evaluator = QueryParser.parse(cssQuery);
         Assert.assertEquals(CombiningEvaluator.Or.class,evaluator.getClass());
-    }
-
-    @Test
-    public void testComposit() {
-        String cssQuery = "#main > div.mycomment-bd > div.mycomment-table > table > tbody:nth-child(3) > tr.tr-bd > td:nth-child(4) > div > a.btn-def";
-        Evaluator evaluator = QueryParser.parse(cssQuery);
-        System.out.println(evaluator);
     }
 }

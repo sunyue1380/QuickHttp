@@ -12,7 +12,7 @@ import java.util.*;
 public class HTMLTokenParser {
     private Logger logger = LoggerFactory.getLogger(HTMLTokenParser.class);
     private List<HTMLToken> htmlTokenList;
-    private AbstractElement root = null;
+    private AbstractElement root = new AbstractElement();
     private List<AbstractElement> allElements = new ArrayList<>();
 
     public static Element parse(List<HTMLToken> htmlTokenList){
@@ -22,24 +22,26 @@ public class HTMLTokenParser {
 
     private HTMLTokenParser(List<HTMLToken> htmlTokenList){
         this.htmlTokenList = htmlTokenList;
+        root.tagName = "root";
         parse();
     }
 
     /**语义分析*/
     private void parse(){
         AbstractElement current = root;
+        allElements.add(root);
         for(HTMLToken htmlToken:htmlTokenList){
             switch(htmlToken.tokenType){
                 case openTag:{
                     AbstractElement newElement = new AbstractElement();
                     allElements.add(newElement);
-                    if(current==null){
-                        root = newElement;
-                    }else{
-                        newElement.parent = current;
-                        newElement.parent.childList.add(newElement);
-                        newElement.parent.childTextList.add(newElement);
-                    }
+//                    if(current==null){
+//                        root = newElement;
+//                    }else{
+//                    }
+                    newElement.parent = current;
+                    newElement.parent.childList.add(newElement);
+                    newElement.parent.childTextList.add(newElement);
                     current = newElement;
                 }break;
                 case tagName:{

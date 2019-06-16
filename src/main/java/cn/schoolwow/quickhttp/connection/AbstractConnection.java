@@ -316,6 +316,63 @@ public class AbstractConnection implements Connection{
         if(proxy==null){
             proxy = QuickHttpConfig.proxy;
         }
+        //重试机制
+        if(retryTimes<=0){
+            retryTimes = QuickHttpConfig.retryTimes;
+        }
+        Response response = null;
+        for(int i=0;i<=retryTimes;i++){
+            try {
+                HttpURLConnection connection = createHttpUrlConnection(parameterBuilder);
+                response = new AbstractResponse(connection);
+                break;
+            }catch (IOException e){
+                if(i==retryTimes){
+                    throw e;
+                }
+                timeout = timeout*2;
+                if(timeout>=60000){
+                    timeout = 60000;
+                }
+                logger.warn("[链接超时]原因:{},第{}次尝试重连,总共{}次,设置超时时间:{},地址:{}",e.getMessage(),i,retryTimes,timeout,url);
+            }
+        }
+        //HttpUrlConnection无法处理从http到https的重定向或者https到http的重定向
+        while(followRedirects&&response.statusCode()>=300&&response.statusCode()<400&&response.hasHeader("Location")){
+            if(redirectTimes>=QuickHttpConfig.maxRedirectTimes){
+                throw new IOException("重定向次数过多!当前次数:"+redirectTimes+",限制最大次数:"+QuickHttpConfig.maxRedirectTimes);
+            }
+            this.url(response.header("location"));
+            redirectTimes++;
+            response = execute();
+        }
+        if(!ignoreHttpErrors){
+            if(response.statusCode()<200||response.statusCode()>=400){
+                throw new IOException("http状态异常!statusCode:"+response.statusCode()+",访问地址:"+url.toExternalForm());
+            }
+        }
+        historyMap.put(url.getHost(),url.toString());
+        if(QuickHttpConfig.interceptor!=null){
+            QuickHttpConfig.interceptor.afterConnection(this,response);
+        }
+        return response;
+    }
+
+    @Override
+    public void enqueue(Response.CallBack callBack) {
+        ThreadPoolExecutorHolder.threadPoolExecutor.submit(()->{
+            try {
+                Response response = execute();
+                callBack.onResponse(response);
+            } catch (IOException e) {
+                e.printStackTrace();
+                callBack.onError(this,e);
+            }
+        });
+    }
+
+    /**创建HttppUrlConnection对象*/
+    private HttpURLConnection createHttpUrlConnection(StringBuilder parameterBuilder) throws IOException {
         final HttpURLConnection httpURLConnection = (HttpURLConnection) (
                 proxy==null?url.openConnection():url.openConnection(proxy)
         );
@@ -350,7 +407,7 @@ public class AbstractConnection implements Connection{
         //设置超时时间
         httpURLConnection.setConnectTimeout(timeout);
         logger.debug("[设置超时时间]设置超时时间:{}",timeout);
-        httpURLConnection.setReadTimeout(timeout/2);
+        httpURLConnection.setReadTimeout(timeout);
         //设置是否自动重定向
         httpURLConnection.setInstanceFollowRedirects(followRedirects);
         logger.debug("[设置重定向]是否自动重定向:{}",followRedirects);
@@ -363,7 +420,7 @@ public class AbstractConnection implements Connection{
         //设置Content-Encoding
         httpURLConnection.setRequestProperty("Accept-Encoding","gzip, deflate");
         //设置Referer
-        if(!historyMap.isEmpty()&&!headers.containsKey("Referer")){
+        if(QuickHttpConfig.refer&&!historyMap.isEmpty()&&!headers.containsKey("Referer")){
             String referer = historyMap.get(url.getHost());
             if(referer!=null&&!referer.equals("")){
                 httpURLConnection.setRequestProperty("Referer",referer);
@@ -442,41 +499,7 @@ public class AbstractConnection implements Connection{
             w.flush();
             w.close();
         }
-
-        int statusCode = httpURLConnection.getResponseCode();
-        if(!ignoreHttpErrors){
-            if(statusCode<200||statusCode>=400){
-                throw new IOException("http状态异常!statusCode:"+statusCode+",访问地址:"+url.toExternalForm());
-            }
-        }
-        Response response = new AbstractResponse(httpURLConnection,retryTimes);
-        //HttpUrlConnection无法处理从http到https的重定向或者https到http的重定向
-        while(response.statusCode()>=300&&response.statusCode()<400&&response.hasHeader("Location")){
-            if(redirectTimes>=QuickHttpConfig.maxRedirectTimes){
-                throw new IOException("重定向次数过多!当前次数:"+redirectTimes+",限制最大次数:"+QuickHttpConfig.maxRedirectTimes);
-            }
-            this.url(response.header("location"));
-            redirectTimes++;
-            response = execute();
-        }
-        historyMap.put(url.getHost(),url.toString());
-        if(QuickHttpConfig.interceptor!=null){
-            QuickHttpConfig.interceptor.afterConnection(this,response);
-        }
-        return response;
-    }
-
-    @Override
-    public void enqueue(Response.CallBack callBack) {
-        ThreadPoolExecutorHolder.threadPoolExecutor.submit(()->{
-            try {
-                Response response = execute();
-                callBack.onResponse(response);
-            } catch (IOException e) {
-                e.printStackTrace();
-                callBack.onError(this,e);
-            }
-        });
+        return httpURLConnection;
     }
 
     private static class ThreadPoolExecutorHolder{

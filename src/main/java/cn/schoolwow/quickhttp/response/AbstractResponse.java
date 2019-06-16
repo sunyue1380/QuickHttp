@@ -45,38 +45,11 @@ public class AbstractResponse implements Response{
     /**Document对象*/
     private Document document;
 
-    public AbstractResponse(HttpURLConnection httpURLConnection,int retryTimes) throws IOException{
+    public AbstractResponse(HttpURLConnection httpURLConnection) throws IOException{
         this.httpURLConnection = httpURLConnection;
-        try {
-            this.httpCookieList = QuickHttp.getCookies(httpURLConnection.getURL());
-        }catch (Exception e){
-            e.printStackTrace();
-            logger.warn("[Cookie获取失败]网站Cookie信息获取失败!url:"+httpURLConnection.getURL());
-        }
-        //重试机制
-        if(retryTimes<=0){
-            retryTimes = QuickHttpConfig.retryTimes;
-        }
-        //获取状态信息
-        int timeout = httpURLConnection.getConnectTimeout();
-        for(int i=0;i<=retryTimes;i++){
-            try {
-                httpURLConnection.setConnectTimeout(timeout);
-                httpURLConnection.setReadTimeout(timeout/2);
-                this.statusCode = httpURLConnection.getResponseCode();
-                break;
-            }catch (SocketTimeoutException e){
-                if(i==retryTimes){
-                    throw e;
-                }
-                timeout = timeout*2;
-                if(timeout>=60000){
-                    timeout = 60000;
-                }
-                logger.warn("[链接超时]第{}次尝试重连,总共{}次,设置超时时间:{},地址:{}",i,retryTimes,timeout,httpURLConnection.getURL());
-            }
-        }
+        this.statusCode = httpURLConnection.getResponseCode();
         this.statusMessage = httpURLConnection.getResponseMessage();
+        this.httpCookieList = QuickHttp.getCookies(httpURLConnection.getURL());
         //提取头部信息
         Map<String, List<String>> headerFields = httpURLConnection.getHeaderFields();
         Set<String> keySet = headerFields.keySet();
@@ -284,6 +257,10 @@ public class AbstractResponse implements Response{
 
     private void getCharsetFromMeta(ByteBuffer byteBuffer,boolean readFully){
         String docData = Charset.forName("utf-8").decode(byteBuffer).toString();
+        //判断是否是HTML或者XML文档
+        if(!docData.startsWith("<?xml")&&!docData.startsWith("<!DOCTYPE")){
+            return;
+        }
         Document doc = Document.parse(docData);
         if(doc.root()==null){
             //不是HTML文档

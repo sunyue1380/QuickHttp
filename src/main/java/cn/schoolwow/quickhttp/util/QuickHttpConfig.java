@@ -15,6 +15,8 @@ public class QuickHttpConfig {
     public static int maxRedirectTimes = 10;
     /**过滤器*/
     public static Interceptor interceptor;
+    /**开启Refer字段*/
+    public static boolean refer = false;
 
     /**线程池配置*/
     public static int corePoolSize = Runtime.getRuntime().availableProcessors();

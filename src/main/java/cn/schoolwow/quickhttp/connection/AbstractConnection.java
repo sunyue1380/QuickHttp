@@ -491,6 +491,7 @@ public class AbstractConnection implements Connection{
                 w.write("--");
                 w.write(boundary);
                 w.write("--");
+                w.write("\r\n");
             }else if(requestBody!=null&&!requestBody.equals("")){
                 w.write(requestBody);
             }else if(!dataMap.isEmpty()){

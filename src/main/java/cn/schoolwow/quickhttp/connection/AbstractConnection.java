@@ -456,9 +456,7 @@ public class AbstractConnection implements Connection{
                 if(!dataMap.isEmpty()) {
                     Set<Map.Entry<String, String>> entrySet = dataMap.entrySet();
                     for (Map.Entry<String, String> entry : entrySet) {
-                        w.write("--");
-                        w.write(boundary);
-                        w.write("\r\n");
+                        w.write("--"+boundary+"\r\n");
                         w.write("Content-Disposition: form-data; name=\""+entry.getKey().replaceAll("\"", "%22")+"\"\r\n");
                         w.write("\r\n");
                         w.write(entry.getValue());
@@ -471,13 +469,10 @@ public class AbstractConnection implements Connection{
                     String name = entry.getKey().replaceAll("\"", "%22");
                     String fileName = file.getName().replaceAll("\"", "%22");
 
-                    w.write("--");
-                    w.write(boundary);
-                    w.write("\r\n");
+                    w.write("--"+boundary+"\r\n");
                     w.write("Content-Disposition: form-data; name=\""+name+"\"; filename=\""+fileName+"\"\r\n");
                     w.write("Content-Type: "+Files.probeContentType(Paths.get(file.getAbsolutePath()))+"\r\n");
                     w.write("\r\n");
-                    w.flush();
                     //写入文件二进制流
                     FileInputStream fileInputStream = new FileInputStream(file);
                     final byte[] buffer = new byte[QuickHttpConfig.BUFFER_SIZE];
@@ -485,7 +480,6 @@ public class AbstractConnection implements Connection{
                     while ((len = fileInputStream.read(buffer)) != -1) {
                         outputStream.write(buffer, 0, len);
                     }
-                    outputStream.flush();
                     w.write("\r\n");
                 }
                 w.write("--");
@@ -497,7 +491,6 @@ public class AbstractConnection implements Connection{
             }else if(!dataMap.isEmpty()){
                 w.write(parameterBuilder.toString());
             }
-            w.flush();
             w.close();
         }
         return httpURLConnection;

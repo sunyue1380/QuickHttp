@@ -35,10 +35,6 @@ public class HTMLTokenParser {
                 case openTag:{
                     AbstractElement newElement = new AbstractElement();
                     allElements.add(newElement);
-//                    if(current==null){
-//                        root = newElement;
-//                    }else{
-//                    }
                     newElement.parent = current;
                     newElement.parent.childList.add(newElement);
                     newElement.parent.childTextList.add(newElement);

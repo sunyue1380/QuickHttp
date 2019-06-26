@@ -64,7 +64,7 @@ public interface Response {
 
     BufferedInputStream bodyStream();
 
-    Document parse() throws IOException;
+    Document parse();
 
     void close();
 

@@ -15,7 +15,8 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.*;
+import java.net.HttpCookie;
+import java.net.HttpURLConnection;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -201,8 +202,16 @@ public class AbstractResponse implements Response{
     @Override
     public byte[] bodyAsBytes() {
         try {
-            return new byte[bufferedInputStream.available()];
-        } catch (IOException e) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            byte[] bytes = new byte[8192];
+            int length = 0 ;
+            while((length=bufferedInputStream.read(bytes,0,bytes.length))!=-1){
+                baos.write(bytes,0,length);
+            }
+            bytes = baos.toByteArray();
+            baos.close();
+            return bytes;
+        }catch (IOException e){
             e.printStackTrace();
             return null;
         }finally {
@@ -216,7 +225,7 @@ public class AbstractResponse implements Response{
     }
 
     @Override
-    public Document parse() throws IOException {
+    public Document parse(){
         if(document==null){
             if(body==null){
                 body();

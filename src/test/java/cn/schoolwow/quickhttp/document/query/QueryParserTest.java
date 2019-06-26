@@ -6,8 +6,6 @@ import cn.schoolwow.quickhttp.document.parse.HTMLParser;
 import cn.schoolwow.quickhttp.document.parse.HTMLToken;
 import cn.schoolwow.quickhttp.document.parse.HTMLTokenParser;
 import org.apache.commons.io.FileUtils;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -17,8 +15,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class QueryParserTest {
     @Test

@@ -27,6 +27,12 @@ public interface Response {
     /**获取返回格式类型*/
     String contentType();
 
+    /**获取大小*/
+    long contentLength();
+
+    /**获取文件名*/
+    String filename();
+
     /**是否有该Header*/
     boolean hasHeader(String name);
 

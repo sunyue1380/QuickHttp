@@ -23,11 +23,27 @@ public class QuickHttp {
         System.setProperty("sun.net.http.allowRestrictedHeaders", "true");
     }
 
+    /**
+     * 设置Cookie策略
+     * @param cookieHandler Cookie策略
+     * */
+    public static void cookieHandler(CookieHandler cookieHandler){
+        CookieHandler.setDefault(cookieHandler);
+    }
 
+    /**
+     * 拦截器
+     * @param interceptor 拦截器实现类
+     * */
     public static void intercept(Interceptor interceptor){
         QuickHttpConfig.interceptor = interceptor;
     }
 
+    /**
+     * 添加Cookie
+     * @param cookie Cookie字段
+     * @param url 域名
+     * */
     public static void addCookie(String cookie,String url){
         try {
             addCookie(cookie,new URL(url));
@@ -36,6 +52,11 @@ public class QuickHttp {
         }
     }
 
+    /**
+     * 添加Cookie
+     * @param cookie Cookie字段
+     * @param u 域名
+     * */
     public static void addCookie(String cookie,URL u){
         ValidateUtil.checkNotEmpty(cookie,"cookie不能为空!");
         String[] tokens = cookie.split(";");
@@ -47,6 +68,12 @@ public class QuickHttp {
         }
     }
 
+    /**
+     * 添加Cookie
+     * @param name cookie键
+     * @param value cookie值
+     * @param url 域名
+     * */
     public static void addCookie(String name, String value,String url){
         try {
             addCookie(name,value,new URL(url));
@@ -55,6 +82,12 @@ public class QuickHttp {
         }
     }
 
+    /**
+     * 添加Cookie
+     * @param name cookie键
+     * @param value cookie值
+     * @param u 域名
+     * */
     public static void addCookie(String name, String value,URL u){
         ValidateUtil.checkNotNull(name,"name不能为空!");
         ValidateUtil.checkNotNull(u,"URL不能为空!");
@@ -67,6 +100,10 @@ public class QuickHttp {
         addCookie(httpCookie);
     }
 
+    /**
+     * 添加Cookie
+     * @param httpCookie Cookie对象
+     * */
     public static void addCookie(HttpCookie httpCookie){
         try {
             URI uri = new URI(httpCookie.getDomain());
@@ -76,12 +113,21 @@ public class QuickHttp {
         }
     }
 
+    /**
+     * 添加Cookie
+     * @param httpCookieList Cookie列表
+     * */
     public static void addCookie(List<HttpCookie> httpCookieList){
         for(HttpCookie httpCookie:httpCookieList){
             addCookie(httpCookie);
         }
     }
 
+    /**
+     * 添加Cookie
+     * @param cookies Cookie键值对
+     * @param url 域名
+     * */
     public static void addCookies(Map<String, String> cookies,String url){
         try {
             addCookies(cookies,new URL(url));
@@ -90,6 +136,11 @@ public class QuickHttp {
         }
     }
 
+    /**
+     * 添加Cookie
+     * @param cookies Cookie键值对
+     * @param u 域名
+     * */
     public static void addCookies(Map<String, String> cookies,URL u){
         Set<String> keySet = cookies.keySet();
         for(String key:keySet){
@@ -97,6 +148,11 @@ public class QuickHttp {
         }
     }
 
+    /**
+     * 获取Cookie
+     * @param url 域名
+     * @param name Cookie名称
+     * */
     public static HttpCookie getCookie(String url, String name){
         ValidateUtil.checkNotEmpty(name,"name不能为空!");
         List<HttpCookie> httpCookieList = getCookies(url);
@@ -108,6 +164,10 @@ public class QuickHttp {
         return null;
     }
 
+    /**
+     * 获取域名下的所有Cookie
+     * @param url 域名
+     * */
     public static List<HttpCookie> getCookies(String url){
         try {
             return getCookies(new URL(url));
@@ -117,6 +177,10 @@ public class QuickHttp {
         return null;
     }
 
+    /**
+     * 获取域名下的所有Cookie
+     * @param u 域名
+     * */
     public static List<HttpCookie> getCookies(URL u){
         try {
             CookieManager cookieManager = ((CookieManager) CookieHandler.getDefault());
@@ -127,14 +191,21 @@ public class QuickHttp {
         return null;
     }
 
-    /**设置全局代理*/
+    /**
+     * 设置全局代理
+     * @param proxy 代理对象
+     * */
     public static void proxy(Proxy proxy) {
         ValidateUtil.checkNotNull(proxy,"代理对象不能为空!");
         QuickHttpConfig.proxy = proxy;
         logger.info("[设置全局代理]地址:{}",proxy.address());
     }
 
-    /**设置全局代理*/
+    /**
+     * 设置全局代理
+     * @param host 代理主机
+     * @param port 代理主机端口
+     * */
     public static void proxy(String host, int port) {
         ValidateUtil.checkNotEmpty(host,"代理地址不能为空!");
         ValidateUtil.checkArgument(port>0,"代理端口必须大于0!port:"+port);
@@ -142,14 +213,20 @@ public class QuickHttp {
         logger.info("[设置全局代理]地址:{},端口:{}",host,port);
     }
 
-    /**设置全局重试次数*/
+    /**
+     * 设置全局重试次数
+     * @param retryTimes 重试次数
+     * */
     public static void retryTimes(int retryTimes) {
         ValidateUtil.checkArgument(retryTimes>0,"重试次数必须大于0!retryTimes:"+retryTimes);
         QuickHttpConfig.retryTimes = retryTimes;
         logger.info("[设置最大重试次数]最大重试次数:{}",retryTimes);
     }
 
-    /**连接*/
+    /**
+     * 访问url
+     * @param url 地址
+     * */
     public static Connection connect(String url){
         return AbstractConnection.getConnection(url);
     }

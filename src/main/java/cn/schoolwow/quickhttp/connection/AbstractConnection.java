@@ -53,15 +53,13 @@ public class AbstractConnection implements Connection{
     /**请求编码*/
     private String charset = "utf-8";
     /**请求类型*/
-    private String contentType = "application/x-www-form-urlencoded; charset="+charset;
+    private String contentType;
     /**用户代理*/
     private String userAgent = UserAgent.CHROME.userAgent;
     /**重试次数*/
     private int retryTimes = -1;
     /**重定向次数*/
     private int redirectTimes = 0;
-    /**Cookie管理器*/
-    private CookieManager cookieManager = (CookieManager) CookieHandler.getDefault();
     /**自定义SSL工厂*/
     private static SSLSocketFactory sslSocketFactory;
     /**HostnameVerifier*/
@@ -393,6 +391,7 @@ public class AbstractConnection implements Connection{
         //当前Cookie
         {
             try {
+                CookieManager cookieManager = (CookieManager) CookieHandler.getDefault();
                 List<HttpCookie> httpCookieList = cookieManager.getCookieStore().get(url.toURI());
                 for(HttpCookie httpCookie:httpCookieList){
                     logger.debug("[设置Cookie]{}:{},{}",httpCookie.getName(),httpCookie.getValue(),JSON.toJSONString(httpCookie));
@@ -415,8 +414,10 @@ public class AbstractConnection implements Connection{
         httpURLConnection.setRequestProperty("User-Agent",userAgent);
         logger.debug("[设置用户代理]UserAgent:{}",userAgent);
         //设置请求类型
-        httpURLConnection.setRequestProperty("Content-Type",contentType);
-        logger.debug("[设置类型]Content-Type:{}",contentType);
+        if(contentType!=null&&!contentType.isEmpty()){
+            httpURLConnection.setRequestProperty("Content-Type",contentType);
+            logger.debug("[设置类型]Content-Type:{}",contentType);
+        }
         //设置Content-Encoding
         httpURLConnection.setRequestProperty("Accept-Encoding","gzip, deflate");
         //设置Referer

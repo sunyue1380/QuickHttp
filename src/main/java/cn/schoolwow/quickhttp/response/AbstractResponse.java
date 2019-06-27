@@ -112,6 +112,26 @@ public class AbstractResponse implements Response{
     }
 
     @Override
+    public long contentLength() {
+        if(!headerMap.containsKey("content-length")){
+            return -1;
+        }
+        return Long.parseLong(headerMap.get("content-length"));
+    }
+
+    @Override
+    public String filename() {
+        if(!headerMap.containsKey("content-disposition")){
+            return null;
+        }
+        String contentDisposition = headerMap.get("content-disposition");
+        String prefix = "filename=";
+        String filename = contentDisposition.substring(contentDisposition.indexOf(prefix)+prefix.length());
+        filename = filename.replace("\"","").trim();
+        return filename;
+    }
+
+    @Override
     public boolean hasHeader(String name) {
         return headerMap.containsKey(name.toLowerCase());
     }

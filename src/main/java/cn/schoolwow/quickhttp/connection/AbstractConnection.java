@@ -10,6 +10,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.net.ConnectionResetException;
 
 import javax.net.ssl.*;
 import java.io.*;
@@ -324,7 +325,7 @@ public class AbstractConnection implements Connection{
                 HttpURLConnection connection = createHttpUrlConnection(parameterBuilder);
                 response = new AbstractResponse(connection);
                 break;
-            }catch (IOException e){
+            }catch (SocketTimeoutException | ConnectException e){
                 if(i==retryTimes){
                     throw e;
                 }
@@ -442,11 +443,11 @@ public class AbstractConnection implements Connection{
                 httpURLConnection.setRequestProperty("Content-Type","multipart/form-data; boundary="+boundary+"; charset="+charset);
                 httpURLConnection.setChunkedStreamingMode(0);
             }else if(requestBody!=null&&!requestBody.equals("")){
-                httpURLConnection.setRequestProperty("Content-Type","application/x-www-form-urlencoded; charset="+charset);
-                httpURLConnection.setFixedLengthStreamingMode(requestBody.length());
+                httpURLConnection.setRequestProperty("Content-Type",this.contentType);
+                httpURLConnection.setFixedLengthStreamingMode(requestBody.getBytes().length);
             }else if(!dataMap.isEmpty()){
                 httpURLConnection.setRequestProperty("Content-Type","application/x-www-form-urlencoded; charset="+charset);
-                httpURLConnection.setFixedLengthStreamingMode(parameterBuilder.toString().length());
+                httpURLConnection.setFixedLengthStreamingMode(parameterBuilder.toString().getBytes().length);
             }
 
             //开始正式写入数据
@@ -485,15 +486,13 @@ public class AbstractConnection implements Connection{
                     outputStream.flush();
                     w.write("\r\n");
                 }
-                w.write("--");
-                w.write(boundary);
-                w.write("--");
-                w.write("\r\n");
+                w.write("--"+boundary+"--\r\n");
             }else if(requestBody!=null&&!requestBody.equals("")){
                 w.write(requestBody);
             }else if(!dataMap.isEmpty()){
                 w.write(parameterBuilder.toString());
             }
+            w.flush();
             w.close();
         }
         return httpURLConnection;

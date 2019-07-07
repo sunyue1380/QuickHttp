@@ -141,6 +141,10 @@ public class AttributeParser {
         if(value.charAt(value.length()-1)=='='){
             value = value.substring(0,value.length()-1);
         }
+        //有些不规则的属性语法,忽略掉
+        if(currentKey==null){
+            return;
+        }
         switch(attributeType){
             case key:{
                 attributes.put(value.trim(),"");

@@ -5,13 +5,16 @@ import cn.schoolwow.quickhttp.connection.Connection;
 import cn.schoolwow.quickhttp.util.Interceptor;
 import cn.schoolwow.quickhttp.util.QuickHttpConfig;
 import cn.schoolwow.quickhttp.util.ValidateUtil;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.net.*;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class QuickHttp {
     private static Logger logger = LoggerFactory.getLogger(QuickHttp.class);
@@ -21,6 +24,41 @@ public class QuickHttp {
         CookieHandler.setDefault(cookieManager);
         //打开限制头部
         System.setProperty("sun.net.http.allowRestrictedHeaders", "true");
+        //判断Cookie文件是否存在,若存在则加载
+        File file = QuickHttpConfig.cookiesFile;
+        if(file.exists()){
+            try {
+                StringBuilder sb = new StringBuilder();
+                Scanner scanner = new Scanner(file);
+                while(scanner.hasNext()){
+                    sb.append(scanner.nextLine());
+                }
+                JSONArray array = JSON.parseArray(sb.toString());
+                List<HttpCookie> httpCookieList = new ArrayList<>();
+                for(int i=0;i<array.size();i++){
+                    JSONObject o = array.getJSONObject(i);
+                    HttpCookie httpCookie = new HttpCookie(o.getString("name"),o.getString("value"));
+                    httpCookie.setDomain(o.getString("domain"));
+                    httpCookie.setMaxAge(o.getLong("maxAge"));
+                    //判断是否过期
+                    if(file.lastModified()+(httpCookie.getMaxAge()*1000)<=System.currentTimeMillis()){
+                        logger.trace("[过期cookie]name:{},value:{},domain:{}",httpCookie.getName(),httpCookie.getValue(),httpCookie.getDomain());
+                        continue;
+                    }
+                    httpCookie.setPath(o.getString("path"));
+                    httpCookie.setSecure(o.getBoolean("secure"));
+                    httpCookie.setHttpOnly(o.getBoolean("httpOnly"));
+                    httpCookie.setDiscard(o.getBoolean("discard"));
+                    httpCookie.setComment(o.getString("comment"));
+                    httpCookie.setCommentURL(o.getString("commentURL"));
+                    httpCookie.setVersion(0);
+                    httpCookieList.add(httpCookie);
+                }
+                logger.debug("[载入cookie文件]载入cookie个数:{}",httpCookieList.size());
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     /**
@@ -192,6 +230,14 @@ public class QuickHttp {
     }
 
     /**
+     * 获取域名下的所有Cookie
+     * */
+    public static List<HttpCookie> getCookies(){
+        CookieManager cookieManager = ((CookieManager) CookieHandler.getDefault());
+        return cookieManager.getCookieStore().getCookies();
+    }
+
+    /**
      * 设置全局代理
      * @param proxy 代理对象
      * */
@@ -221,6 +267,16 @@ public class QuickHttp {
         ValidateUtil.checkArgument(retryTimes>0,"重试次数必须大于0!retryTimes:"+retryTimes);
         QuickHttpConfig.retryTimes = retryTimes;
         logger.info("[设置最大重试次数]最大重试次数:{}",retryTimes);
+    }
+
+    /**
+     * 设置全局最大超时时间
+     * @param maxTimeout 最大超时时间(毫秒)
+     * */
+    public static void maxTimeout(int maxTimeout) {
+        ValidateUtil.checkArgument(maxTimeout>0,"最大超时时间必须大于0!retryTimes:"+maxTimeout);
+        QuickHttpConfig.maxTimeout = maxTimeout;
+        logger.info("[设置最大超时时间]最大超时时间:{}",maxTimeout);
     }
 
     /**

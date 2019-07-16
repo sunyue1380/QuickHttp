@@ -154,7 +154,8 @@ public class AbstractConnection implements Connection{
 
     @Override
     public Connection ajax() {
-        return header("X-Requested-With", "XMLHttpRequest");
+        return header("X-Requested-With", "XMLHttpRequest")
+                .header("Origin",url.getProtocol()+"://"+url.getHost());
     }
 
     @Override
@@ -330,8 +331,8 @@ public class AbstractConnection implements Connection{
                     throw e;
                 }
                 timeout = timeout*2;
-                if(timeout>=60000){
-                    timeout = 60000;
+                if(timeout>=QuickHttpConfig.maxTimeout){
+                    timeout = QuickHttpConfig.maxTimeout;
                 }
                 logger.warn("[链接超时]原因:{},第{}次尝试重连,总共{}次,设置超时时间:{},地址:{}",e.getMessage(),i,retryTimes,timeout,url);
             }
@@ -354,6 +355,13 @@ public class AbstractConnection implements Connection{
         if(QuickHttpConfig.interceptor!=null){
             QuickHttpConfig.interceptor.afterConnection(this,response);
         }
+        //写入文本文件
+        List<HttpCookie> httpCookieList = QuickHttp.getCookies();
+        logger.debug("[写入Cookie文件]写入Cookie个数:{}",httpCookieList.size());
+        PrintWriter printWriter = new PrintWriter(QuickHttpConfig.cookiesFile);
+        printWriter.print(JSON.toJSONString(httpCookieList));
+        printWriter.flush();
+        printWriter.close();
         return response;
     }
 

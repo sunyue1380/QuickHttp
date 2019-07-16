@@ -11,10 +11,7 @@ import com.alibaba.fastjson.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.HttpCookie;
 import java.net.HttpURLConnection;
 import java.nio.Buffer;
@@ -78,12 +75,6 @@ public class AbstractResponse implements Response{
             bufferedInputStream = new BufferedInputStream(inputStream);
         }
         getCharset();
-        if(this.charset==null){
-            this.charset = "utf-8";
-            logger.debug("[获取charset为空]使用默认编码:utf-8");
-        }else{
-            logger.debug("[获取charset]charset:{}",charset);
-        }
     }
 
     @Override
@@ -281,6 +272,12 @@ public class AbstractResponse implements Response{
             if(charset==null){
                 getCharsetFromMeta(firstBytes,readFully);
             }
+        }
+        if(this.charset==null){
+            this.charset = "utf-8";
+            logger.debug("[获取charset为空]使用默认编码:utf-8");
+        }else{
+            logger.debug("[获取charset]charset:{}",charset);
         }
     }
 

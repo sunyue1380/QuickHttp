@@ -304,14 +304,6 @@ public class AbstractConnection implements Connection{
             }
             parameterBuilder.deleteCharAt(parameterBuilder.length()-1);
         }
-        //设置url请求参数
-        if(!method.hasBody()){
-            String parameter = (url.getQuery()==null?"":url.getQuery())+parameterBuilder.toString();
-            if(parameter!=null&&!parameter.equals("")){
-                parameter = "?"+parameter;
-            }
-            url = new URL(url.getProtocol()+"://"+url.getAuthority()+url.getPath()+parameter);
-        }
         //创建Connection实例
         if(proxy==null){
             proxy = QuickHttpConfig.proxy;
@@ -380,10 +372,19 @@ public class AbstractConnection implements Connection{
 
     /**创建HttppUrlConnection对象*/
     private HttpURLConnection createHttpUrlConnection(StringBuilder parameterBuilder) throws IOException {
+        URL actualUrl = url;
+        //设置url请求参数
+        if(!method.hasBody()){
+            String parameter = (url.getQuery()==null?"":url.getQuery())+parameterBuilder.toString();
+            if(parameter!=null&&!parameter.equals("")){
+                parameter = "?"+parameter;
+            }
+            actualUrl = new URL(url.getProtocol()+"://"+url.getAuthority()+url.getPath()+parameter);
+        }
         final HttpURLConnection httpURLConnection = (HttpURLConnection) (
-                proxy==null?url.openConnection():url.openConnection(proxy)
+                proxy==null?actualUrl.openConnection():actualUrl.openConnection(proxy)
         );
-        logger.info("[打开链接]地址:{} {},代理:{}",method.name(),url,proxy==null?"无":proxy.address());
+        logger.info("[打开链接]地址:{} {},代理:{}",method.name(),actualUrl,proxy==null?"无":proxy.address());
         //判断是否https
         if (httpURLConnection instanceof HttpsURLConnection) {
             ((HttpsURLConnection)httpURLConnection).setSSLSocketFactory(AbstractConnection.sslSocketFactory);

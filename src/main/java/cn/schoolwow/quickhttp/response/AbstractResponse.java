@@ -55,7 +55,7 @@ public class AbstractResponse implements Response{
             if(key==null){
                 continue;
             }
-            headerMap.put(key.toLowerCase(),httpURLConnection.getHeaderField(key));
+            headerMap.put(key,httpURLConnection.getHeaderField(key));
         }
         headerMap = Collections.unmodifiableMap(headerMap);
         logger.debug("[获取头部信息]headFields:{}", JSON.toJSONString(headerMap));
@@ -167,21 +167,9 @@ public class AbstractResponse implements Response{
         if(body!=null){
             return body;
         }
-        try {
-            int length = 0;
-            byte[] bytes = new byte[QuickHttpConfig.BUFFER_SIZE];
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            while((length = bufferedInputStream.read(bytes,0,bytes.length))!=-1){
-                baos.write(bytes,0,length);
-            }
-            body = Charset.forName(charset).decode(ByteBuffer.wrap(baos.toByteArray())).toString();
-            return body;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }finally {
-            close();
-        }
+        byte[] bytes = bodyAsBytes();
+        body = Charset.forName(charset).decode(ByteBuffer.wrap(bytes)).toString();
+        return body;
     }
 
     @Override
@@ -214,11 +202,12 @@ public class AbstractResponse implements Response{
     public byte[] bodyAsBytes() {
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            byte[] bytes = new byte[8192];
+            byte[] bytes = new byte[QuickHttpConfig.BUFFER_SIZE];
             int length = 0 ;
             while((length=bufferedInputStream.read(bytes,0,bytes.length))!=-1){
                 baos.write(bytes,0,length);
             }
+            baos.flush();
             bytes = baos.toByteArray();
             baos.close();
             return bytes;

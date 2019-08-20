@@ -349,11 +349,13 @@ public class AbstractConnection implements Connection{
         }
         //写入文本文件
         List<HttpCookie> httpCookieList = QuickHttp.getCookies();
-        logger.debug("[写入Cookie文件]写入Cookie个数:{}",httpCookieList.size());
-        PrintWriter printWriter = new PrintWriter(QuickHttpConfig.cookiesFile);
-        printWriter.print(JSON.toJSONString(httpCookieList));
-        printWriter.flush();
-        printWriter.close();
+        if(httpCookieList.size()>0){
+            logger.debug("[写入Cookie文件]写入Cookie个数:{}",httpCookieList.size());
+            PrintWriter printWriter = new PrintWriter(QuickHttpConfig.cookiesFile);
+            printWriter.print(JSON.toJSONString(httpCookieList));
+            printWriter.flush();
+            printWriter.close();
+        }
         return response;
     }
 
@@ -415,8 +417,9 @@ public class AbstractConnection implements Connection{
         logger.debug("[设置请求方法]设置Method:{}",method.name());
         //设置超时时间
         httpURLConnection.setConnectTimeout(timeout);
-        logger.debug("[设置超时时间]设置超时时间:{}",timeout);
+        logger.debug("[设置链接超时时间]设置链接超时时间:{}",httpURLConnection.getConnectTimeout());
         httpURLConnection.setReadTimeout(timeout);
+        logger.debug("[设置读取超时时间]设置读取超时时间:{}",httpURLConnection.getReadTimeout());
         //设置是否自动重定向
         httpURLConnection.setInstanceFollowRedirects(followRedirects);
         logger.debug("[设置重定向]是否自动重定向:{}",followRedirects);

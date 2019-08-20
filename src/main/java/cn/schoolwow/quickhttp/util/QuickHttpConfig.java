@@ -7,7 +7,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class QuickHttpConfig {
     /**缓冲区大小*/
-    public static final int BUFFER_SIZE = 1024*32;
+    public static final int BUFFER_SIZE = 1024*8;
     /**全局代理*/
     public static Proxy proxy;
     /**默认重试次数*/

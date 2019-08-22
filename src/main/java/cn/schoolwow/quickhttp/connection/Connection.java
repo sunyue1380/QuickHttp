@@ -53,6 +53,8 @@ public interface Connection {
 
     Connection referrer(String referrer);
 
+    Connection contentType(String contentType);
+
     Connection ajax();
 
     Connection timeout(int millis);
@@ -90,6 +92,9 @@ public interface Connection {
     Connection cookies(Map<String, String> cookies);
 
     Connection charset(String charset);
+
+    /**不发送Cookie头*/
+    Connection noCookie();
 
     Connection retryTimes(int retryTimes);
 

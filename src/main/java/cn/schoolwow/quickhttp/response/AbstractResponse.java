@@ -4,6 +4,7 @@ import cn.schoolwow.quickhttp.QuickHttp;
 import cn.schoolwow.quickhttp.document.Document;
 import cn.schoolwow.quickhttp.document.element.Element;
 import cn.schoolwow.quickhttp.document.element.Elements;
+import cn.schoolwow.quickhttp.domain.ResponseMeta;
 import cn.schoolwow.quickhttp.util.QuickHttpConfig;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
@@ -11,7 +12,10 @@ import com.alibaba.fastjson.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpCookie;
 import java.net.HttpURLConnection;
 import java.nio.Buffer;
@@ -34,6 +38,8 @@ public class AbstractResponse implements Response{
     private String charset;
     /**头部信息*/
     private Map<String,String> headerMap = new HashMap<>();
+    /**返回元数据*/
+    private ResponseMeta responseMeta = new ResponseMeta();
     /**本URI对应的Cookie*/
     private List<HttpCookie> httpCookieList;
     /**输入流*/
@@ -55,20 +61,34 @@ public class AbstractResponse implements Response{
             if(key==null){
                 continue;
             }
-            headerMap.put(key,httpURLConnection.getHeaderField(key));
+            String value = httpURLConnection.getHeaderField(key);
+            switch(key.toLowerCase()){
+                case "content-type":{
+                    responseMeta.contentType = value;
+                }break;
+                case "content-encoding":{
+                    responseMeta.contentEncoding = value;
+                }break;
+                case "content-length":{
+                    responseMeta.contentLength = Long.parseLong(value);
+                }break;
+                case "content-disposition":{
+                    responseMeta.contentDisposition = value;
+                }break;
+            }
+            headerMap.put(key,value);
         }
         headerMap = Collections.unmodifiableMap(headerMap);
         logger.debug("[获取头部信息]headFields:{}", JSON.toJSONString(headerMap));
         //提取body信息
         {
             InputStream inputStream = httpURLConnection.getErrorStream()!=null?httpURLConnection.getErrorStream():httpURLConnection.getInputStream();
-            String contentEncoding = headerMap.get("content-encoding");
-            if(contentEncoding!=null&&!contentEncoding.isEmpty()){
-                if(contentEncoding.equals("gzip")){
-                    logger.debug("[返回gzip格式流]Content-Encoding:{}",contentEncoding);
+            if(responseMeta.contentEncoding!=null&&!responseMeta.contentEncoding.isEmpty()){
+                if(responseMeta.contentEncoding.equals("gzip")){
+                    logger.debug("[返回gzip格式流]Content-Encoding:{}",responseMeta.contentEncoding);
                     inputStream = new GZIPInputStream(inputStream);
-                }else if(contentEncoding.equals("deflate")){
-                    logger.debug("[返回deflate格式流]Content-Encoding:{}",contentEncoding);
+                }else if(responseMeta.contentEncoding.equals("deflate")){
+                    logger.debug("[返回deflate格式流]Content-Encoding:{}",responseMeta.contentEncoding);
                     inputStream = new InflaterInputStream(inputStream,new Inflater(true));
                 }
             }
@@ -99,23 +119,20 @@ public class AbstractResponse implements Response{
 
     @Override
     public String contentType() {
-        return headerMap.get("content-type");
+        return responseMeta.contentType;
     }
 
     @Override
     public long contentLength() {
-        if(!headerMap.containsKey("content-length")){
-            return -1;
-        }
-        return Long.parseLong(headerMap.get("content-length"));
+        return responseMeta.contentLength;
     }
 
     @Override
     public String filename() {
-        if(!headerMap.containsKey("content-disposition")){
+        if(responseMeta.contentDisposition==null){
             return null;
         }
-        String contentDisposition = headerMap.get("content-disposition");
+        String contentDisposition = responseMeta.contentDisposition;
         String prefix = "filename=";
         String filename = contentDisposition.substring(contentDisposition.indexOf(prefix)+prefix.length());
         filename = filename.replace("\"","").trim();
@@ -124,12 +141,12 @@ public class AbstractResponse implements Response{
 
     @Override
     public boolean hasHeader(String name) {
-        return headerMap.containsKey(name.toLowerCase());
+        return headerMap.containsKey(name);
     }
 
     @Override
     public boolean hasHeaderWithValue(String name, String value) {
-        return hasHeader(name)&&headerMap.get(name.toLowerCase()).equals(value);
+        return hasHeader(name)&&headerMap.get(name).equals(value);
     }
 
     @Override
@@ -246,10 +263,7 @@ public class AbstractResponse implements Response{
     }
 
     private void getCharset() throws IOException {
-        {
-            String contentType = headerMap.get("content-type");
-            getCharsetFromContentType(contentType);
-        }
+        getCharsetFromContentType(responseMeta.contentType);
         if(charset==null){
             byte[] bytes = new byte[1024*5];
             bufferedInputStream.mark(bytes.length);
@@ -262,8 +276,8 @@ public class AbstractResponse implements Response{
                 getCharsetFromMeta(firstBytes,readFully);
             }
         }
-        if(this.charset==null){
-            this.charset = "utf-8";
+        if(charset==null){
+            charset = "utf-8";
             logger.debug("[获取charset为空]使用默认编码:utf-8");
         }else{
             logger.debug("[获取charset]charset:{}",charset);

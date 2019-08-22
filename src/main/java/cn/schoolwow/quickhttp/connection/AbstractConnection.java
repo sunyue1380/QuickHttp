@@ -10,7 +10,6 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.net.ConnectionResetException;
 
 import javax.net.ssl.*;
 import java.io.*;
@@ -61,6 +60,8 @@ public class AbstractConnection implements Connection{
     private int retryTimes = -1;
     /**重定向次数*/
     private int redirectTimes = 0;
+    /**Cookie*/
+    private String hostCookie;
     /**自定义SSL工厂*/
     private static SSLSocketFactory sslSocketFactory;
     /**HostnameVerifier*/
@@ -153,6 +154,12 @@ public class AbstractConnection implements Connection{
     }
 
     @Override
+    public Connection contentType(String contentType) {
+        this.contentType = contentType;
+        return this;
+    }
+
+    @Override
     public Connection ajax() {
         return header("X-Requested-With", "XMLHttpRequest")
                 .header("Origin",url.getProtocol()+"://"+url.getHost());
@@ -218,14 +225,12 @@ public class AbstractConnection implements Connection{
     @Override
     public Connection requestBody(JSONObject body) {
         this.requestBody = body.toJSONString();
-        this.contentType = "application/json; charset="+charset;
         return this;
     }
 
     @Override
     public Connection requestBody(JSONArray array) {
         this.requestBody = array.toJSONString();
-        this.contentType = "application/json; charset="+charset;
         return this;
     }
 
@@ -286,6 +291,13 @@ public class AbstractConnection implements Connection{
     }
 
     @Override
+    public Connection noCookie() {
+        hostCookie = QuickHttp.getCookieString(url);
+        QuickHttp.removeCookie(url);
+        return this;
+    }
+
+    @Override
     public Connection retryTimes(int retryTimes){
         this.retryTimes = retryTimes;
         return this;
@@ -334,7 +346,7 @@ public class AbstractConnection implements Connection{
             if(redirectTimes>=QuickHttpConfig.maxRedirectTimes){
                 throw new IOException("重定向次数过多!当前次数:"+redirectTimes+",限制最大次数:"+QuickHttpConfig.maxRedirectTimes);
             }
-            this.url(response.header("location"));
+            this.url(response.header("Location"));
             redirectTimes++;
             response = execute();
         }
@@ -346,6 +358,10 @@ public class AbstractConnection implements Connection{
         historyMap.put(url.getHost(),url.toString());
         if(QuickHttpConfig.interceptor!=null){
             QuickHttpConfig.interceptor.afterConnection(this,response);
+        }
+        if(hostCookie!=null&&!hostCookie.isEmpty()){
+            QuickHttp.addCookie(hostCookie,url);
+            hostCookie = null;
         }
         //写入文本文件
         List<HttpCookie> httpCookieList = QuickHttp.getCookies();
@@ -392,14 +408,6 @@ public class AbstractConnection implements Connection{
             ((HttpsURLConnection)httpURLConnection).setSSLSocketFactory(AbstractConnection.sslSocketFactory);
             ((HttpsURLConnection)httpURLConnection).setHostnameVerifier(AbstractConnection.hostnameVerifier);
         }
-        //设置头部
-        {
-            Set<Map.Entry<String, String>> entrySet = headers.entrySet();
-            for (Map.Entry<String, String> entry : entrySet) {
-                httpURLConnection.setRequestProperty(entry.getKey(), entry.getValue());
-                logger.debug("[设置头部]name:{},value:{}", entry.getKey(), entry.getValue());
-            }
-        }
         //当前Cookie
         {
             try {
@@ -426,11 +434,6 @@ public class AbstractConnection implements Connection{
         //设置用户代理
         httpURLConnection.setRequestProperty("User-Agent",userAgent);
         logger.debug("[设置用户代理]UserAgent:{}",userAgent);
-        //设置请求类型
-        if(contentType!=null&&!contentType.isEmpty()){
-            httpURLConnection.setRequestProperty("Content-Type",contentType);
-            logger.debug("[设置类型]Content-Type:{}",contentType);
-        }
         //设置Content-Encoding
         httpURLConnection.setRequestProperty("Accept-Encoding","gzip, deflate");
         //设置Referer
@@ -439,6 +442,14 @@ public class AbstractConnection implements Connection{
             if(referer!=null&&!referer.equals("")){
                 httpURLConnection.setRequestProperty("Referer",referer);
                 logger.debug("[设置Referer]Referer:{}",referer);
+            }
+        }
+        //设置头部
+        {
+            Set<Map.Entry<String, String>> entrySet = headers.entrySet();
+            for (Map.Entry<String, String> entry : entrySet) {
+                httpURLConnection.setRequestProperty(entry.getKey(), entry.getValue());
+                logger.debug("[设置头部]name:{},value:{}", entry.getKey(), entry.getValue());
             }
         }
         if(QuickHttpConfig.interceptor!=null){
@@ -455,11 +466,14 @@ public class AbstractConnection implements Connection{
                 httpURLConnection.setRequestProperty("Content-Type","multipart/form-data; boundary="+boundary+"; charset="+charset);
                 httpURLConnection.setChunkedStreamingMode(0);
             }else if(requestBody!=null&&!requestBody.equals("")){
-                httpURLConnection.setRequestProperty("Content-Type",this.contentType);
+                httpURLConnection.setRequestProperty("Content-Type","application/json; charset="+charset+";");
                 httpURLConnection.setFixedLengthStreamingMode(requestBody.getBytes().length);
             }else if(!dataMap.isEmpty()){
                 httpURLConnection.setRequestProperty("Content-Type","application/x-www-form-urlencoded; charset="+charset);
                 httpURLConnection.setFixedLengthStreamingMode(parameterBuilder.toString().getBytes().length);
+            }
+            if(contentType!=null&&!contentType.isEmpty()){
+                httpURLConnection.setRequestProperty("Content-Type",contentType);
             }
 
             //开始正式写入数据

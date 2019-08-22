@@ -230,11 +230,77 @@ public class QuickHttp {
     }
 
     /**
+     * 获取域名下Cookie头部
+     * @param u 域名
+     * */
+    public static String getCookieString(String u){
+        try {
+            return getCookieString(new URL(u));
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * 获取域名下Cookie头部
+     * @param u 域名
+     * */
+    public static String getCookieString(URL u){
+        try {
+            CookieManager cookieManager = ((CookieManager) CookieHandler.getDefault());
+            List<HttpCookie> httpCookieList = cookieManager.getCookieStore().get(u.toURI());
+            StringBuilder builder = new StringBuilder();
+            for(HttpCookie httpCookie:httpCookieList){
+                builder.append(httpCookie.getName()+"="+httpCookie.getValue()+";");
+            }
+            return builder.toString();
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
      * 获取域名下的所有Cookie
      * */
     public static List<HttpCookie> getCookies(){
-        CookieManager cookieManager = ((CookieManager) CookieHandler.getDefault());
         return cookieManager.getCookieStore().getCookies();
+    }
+
+    /**
+     * 删除域名下所有Cookie
+     * */
+    public static boolean removeCookie(String url){
+        try {
+            return removeCookie(new URL(url));
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * 删除域名下所有Cookie
+     * */
+    public static boolean removeCookie(URL u){
+        try {
+            List<HttpCookie> httpCookieList = cookieManager.getCookieStore().get(u.toURI());
+            for(HttpCookie httpCookie:httpCookieList){
+                cookieManager.getCookieStore().remove(u.toURI(),httpCookie);
+            }
+            return true;
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * 删除所有Cookie
+     * */
+    public static boolean removeAllCookie(){
+        return cookieManager.getCookieStore().removeAll();
     }
 
     /**

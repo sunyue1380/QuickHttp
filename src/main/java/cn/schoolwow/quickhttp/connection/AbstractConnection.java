@@ -312,7 +312,11 @@ public class AbstractConnection implements Connection{
         if(!dataMap.isEmpty()){
             Set<Map.Entry<String,String>> entrySet = dataMap.entrySet();
             for(Map.Entry<String,String> entry:entrySet){
-                parameterBuilder.append(URLEncoder.encode(entry.getKey(),charset)+"="+URLEncoder.encode(entry.getValue(),charset)+"&");
+                String value = entry.getValue();
+                if(null!=value){
+                    value = URLEncoder.encode(value,charset);
+                }
+                parameterBuilder.append(URLEncoder.encode(entry.getKey(),charset)+"="+value+"&");
             }
             parameterBuilder.deleteCharAt(parameterBuilder.length()-1);
         }
@@ -321,7 +325,7 @@ public class AbstractConnection implements Connection{
             proxy = QuickHttpConfig.proxy;
         }
         //重试机制
-        if(retryTimes<=0){
+        if(retryTimes<0){
             retryTimes = QuickHttpConfig.retryTimes;
         }
         Response response = null;
@@ -428,9 +432,7 @@ public class AbstractConnection implements Connection{
         logger.debug("[设置链接超时时间]设置链接超时时间:{}",httpURLConnection.getConnectTimeout());
         httpURLConnection.setReadTimeout(timeout);
         logger.debug("[设置读取超时时间]设置读取超时时间:{}",httpURLConnection.getReadTimeout());
-        //设置是否自动重定向
-        httpURLConnection.setInstanceFollowRedirects(followRedirects);
-        logger.debug("[设置重定向]是否自动重定向:{}",followRedirects);
+        httpURLConnection.setInstanceFollowRedirects(false);
         //设置用户代理
         httpURLConnection.setRequestProperty("User-Agent",userAgent);
         logger.debug("[设置用户代理]UserAgent:{}",userAgent);

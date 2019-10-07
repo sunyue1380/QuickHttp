@@ -1,26 +1,15 @@
 package cn.schoolwow.quickhttp.document.parse;
 
 import cn.schoolwow.quickhttp.document.element.Element;
-import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.List;
 
 public class HTMLTokenParserTest {
     private Logger logger = LoggerFactory.getLogger(HTMLTokenParser.class);
-    @Test
-    public void testIndex() throws IOException {
-        String html = FileUtils.readFileToString(new File("index.html"),"utf-8");
-        List<HTMLToken> htmlTokenList = HTMLParser.parse(html);
-        Element element = HTMLTokenParser.parse(htmlTokenList);
-        FileUtils.writeStringToFile(new File("target.html"),element.outerHtml(),"utf-8");
-        Assert.assertEquals(html,element.outerHtml());
-    }
 
     @Test
     public void testBasic() {

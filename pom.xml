@@ -6,7 +6,7 @@
 
     <groupId>cn.schoolwow</groupId>
     <artifactId>QuickHttp</artifactId>
-    <version>1.5-SNAPSHOT</version>
+    <version>1.6-SNAPSHOT</version>
 
     <name>QuickHttp</name>
     <url>https://github.com/sunyue1380/QuickHttp</url>
@@ -65,24 +65,18 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>1.2.3</version>
-            <scope>test</scope>
+            <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-            <version>2.6</version>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.11.3</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.12</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jsoup</groupId>
-            <artifactId>jsoup</artifactId>
-            <version>1.11.3</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -111,21 +105,37 @@
 
         <resources>
             <resource>
-                <directory>${basedir}</directory>
-                <includes>
-                    <include>logback.xml</include>
-                </includes>
+                <directory>src/main/resources</directory>
+                <excludes>
+                    <exclude>logback.xml</exclude>
+                </excludes>
             </resource>
         </resources>
     </build>
 
     <profiles>
         <profile>
-            <!-- 打包的 -P参数 -->
-            <id>release</id>
+            <id>schoolwow</id>
+            <distributionManagement>
+                <repository>
+                    <id>schoolwow</id>
+                    <name>schoolwow-release</name>
+                    <url>http://maven.schoolwow.cn/content/repositories/releases/</url>
+                </repository>
+                <snapshotRepository>
+                    <id>schoolwow</id>
+                    <name>schoolwow-snapshot</name>
+                    <url>http://maven.schoolwow.cn/content/repositories/snapshots/</url>
+                </snapshotRepository>
+            </distributionManagement>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+        </profile>
+        <profile>
+            <id>sonatype-oss-release</id>
             <build>
                 <plugins>
-                    <!-- Source -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
@@ -139,7 +149,6 @@
                             </execution>
                         </executions>
                     </plugin>
-                    <!-- Javadoc -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
@@ -156,7 +165,6 @@
                             </execution>
                         </executions>
                     </plugin>
-                    <!-- GPG  打包插件-->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
@@ -182,9 +190,6 @@
                     <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
                 </repository>
             </distributionManagement>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
         </profile>
     </profiles>
 </project>

@@ -5,7 +5,6 @@ import cn.schoolwow.quickhttp.document.element.Elements;
 import cn.schoolwow.quickhttp.document.parse.HTMLParser;
 import cn.schoolwow.quickhttp.document.parse.HTMLToken;
 import cn.schoolwow.quickhttp.document.parse.HTMLTokenParser;
-import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -17,23 +16,6 @@ import java.util.Map;
 import java.util.Set;
 
 public class QueryParserTest {
-    @Test
-    public void testIndex() throws IOException {
-        String html = FileUtils.readFileToString(new File("index.html"),"utf-8");
-        //"skuApply(95054670321,1203734,1,'Others')"
-//        Pattern pattern = Pattern.compile("\"skuApply\\((?<skuApply>.*)\\)\"");
-//        Matcher matcher = pattern.matcher(html);
-//        while(matcher.find()){
-//            System.out.println(matcher.group("skuApply"));
-//        }
-
-        List<HTMLToken> htmlTokenList = HTMLParser.parse(html);
-        Element element = HTMLTokenParser.parse(htmlTokenList);
-        System.out.println(element.outerHtml());
-        Elements as = element.select("a[onclick^=skuApply]");
-        Assert.assertEquals(2,as.size());
-    }
-
     @Test
     public void testEvaluator() {
         Map<String,Class> evaluatorMap = new LinkedHashMap<>();

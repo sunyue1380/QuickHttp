@@ -56,21 +56,21 @@ public interface Response {
 
     List<HttpCookie> cookieList();
 
-    String body();
+    String body() throws IOException;
 
-    JSONObject bodyAsJSONObject();
+    JSONObject bodyAsJSONObject() throws IOException;
 
-    JSONArray bodyAsJSONArray();
+    JSONArray bodyAsJSONArray() throws IOException;
 
-    JSONObject jsonpAsJSONObject();
+    JSONObject jsonpAsJSONObject() throws IOException;
 
-    JSONArray jsonpAsJSONArray();
+    JSONArray jsonpAsJSONArray() throws IOException;
 
-    byte[] bodyAsBytes();
+    byte[] bodyAsBytes() throws IOException;
 
     BufferedInputStream bodyStream();
 
-    Document parse();
+    Document parse() throws IOException;
 
     void close();
 

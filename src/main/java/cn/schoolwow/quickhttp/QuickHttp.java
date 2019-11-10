@@ -96,7 +96,9 @@ public class QuickHttp {
      * @param u 域名
      * */
     public static void addCookie(String cookie,URL u){
-        ValidateUtil.checkNotEmpty(cookie,"cookie不能为空!");
+        if(null==cookie||cookie.isEmpty()){
+            return;
+        }
         String[] tokens = cookie.split(";");
         for(String token:tokens){
             int startIndex = token.indexOf("=");

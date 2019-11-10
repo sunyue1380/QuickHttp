@@ -180,7 +180,7 @@ public class AbstractResponse implements Response{
     }
 
     @Override
-    public String body() {
+    public String body() throws IOException {
         if(body!=null){
             return body;
         }
@@ -190,50 +190,43 @@ public class AbstractResponse implements Response{
     }
 
     @Override
-    public JSONObject bodyAsJSONObject(){
+    public JSONObject bodyAsJSONObject() throws IOException {
         body();
         JSONObject object = JSON.parseObject(body);
         return object;
     }
 
     @Override
-    public JSONArray bodyAsJSONArray(){
+    public JSONArray bodyAsJSONArray() throws IOException {
         body();
         JSONArray array = JSON.parseArray(body);
         return array;
     }
 
-    public JSONObject jsonpAsJSONObject(){
+    public JSONObject jsonpAsJSONObject() throws IOException {
         body();
         int startIndex = body.indexOf("(")+1,endIndex = body.lastIndexOf(")");
         return JSON.parseObject(body.substring(startIndex,endIndex));
     }
 
-    public JSONArray jsonpAsJSONArray(){
+    public JSONArray jsonpAsJSONArray() throws IOException {
         body();
         int startIndex = body.indexOf("(")+1,endIndex = body.lastIndexOf(")");
         return JSON.parseArray(body.substring(startIndex,endIndex));
     }
 
     @Override
-    public byte[] bodyAsBytes() {
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            byte[] bytes = new byte[QuickHttpConfig.BUFFER_SIZE];
-            int length = 0 ;
-            while((length=bufferedInputStream.read(bytes,0,bytes.length))!=-1){
-                baos.write(bytes,0,length);
-            }
-            baos.flush();
-            bytes = baos.toByteArray();
-            baos.close();
-            return bytes;
-        }catch (IOException e){
-            e.printStackTrace();
-            return null;
-        }finally {
-            close();
+    public byte[] bodyAsBytes() throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        byte[] bytes = new byte[QuickHttpConfig.BUFFER_SIZE];
+        int length = 0 ;
+        while((length=bufferedInputStream.read(bytes,0,bytes.length))!=-1){
+            baos.write(bytes,0,length);
         }
+        baos.flush();
+        bytes = baos.toByteArray();
+        baos.close();
+        return bytes;
     }
 
     @Override
@@ -242,7 +235,7 @@ public class AbstractResponse implements Response{
     }
 
     @Override
-    public Document parse(){
+    public Document parse() throws IOException {
         if(document==null){
             if(body==null){
                 body();

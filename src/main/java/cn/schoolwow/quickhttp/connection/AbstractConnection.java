@@ -369,7 +369,7 @@ public class AbstractConnection implements Connection{
         }
         //写入文本文件
         List<HttpCookie> httpCookieList = QuickHttp.getCookies();
-        if(httpCookieList.size()>0){
+        if(httpCookieList.size()>0&&null!=QuickHttpConfig.cookiesFile){
             logger.debug("[写入Cookie文件]写入Cookie个数:{}",httpCookieList.size());
             PrintWriter printWriter = new PrintWriter(QuickHttpConfig.cookiesFile);
             printWriter.print(JSON.toJSONString(httpCookieList));

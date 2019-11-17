@@ -24,9 +24,10 @@ public class QuickHttp {
         CookieHandler.setDefault(cookieManager);
         //打开限制头部
         System.setProperty("sun.net.http.allowRestrictedHeaders", "true");
+
         //判断Cookie文件是否存在,若存在则加载
         File file = QuickHttpConfig.cookiesFile;
-        if(file.exists()){
+        if(null!=file&&file.exists()){
             try {
                 StringBuilder sb = new StringBuilder();
                 Scanner scanner = new Scanner(file);
@@ -54,7 +55,8 @@ public class QuickHttp {
                     httpCookie.setVersion(0);
                     httpCookieList.add(httpCookie);
                 }
-                logger.debug("[载入cookie文件]载入cookie个数:{}",httpCookieList.size());
+                QuickHttp.addCookie(httpCookieList);
+                logger.info("[载入cookie文件]载入cookie个数:{}",httpCookieList.size());
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }

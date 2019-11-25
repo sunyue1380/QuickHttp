@@ -1,5 +1,6 @@
 package cn.schoolwow.quickhttp.util;
 
+import cn.schoolwow.quickhttp.QuickHttp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +35,20 @@ public class QuickHttpConfig {
     public static BlockingQueue blockingQueue = new LinkedBlockingQueue();
 
     static{
-        URL url = ClassLoader.getSystemResource("");
+        StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+        //获取真实路径
+        URL url = null;
+        try {
+            url = Class.forName(stackTraceElements[3].getClassName()).getResource("");
+            if("jar".equals(url.getProtocol())){
+                url = QuickHttp.class.getProtectionDomain().getCodeSource().getLocation();
+            }else if("file".equals(url.getProtocol())) {
+                url = Thread.currentThread().getContextClassLoader().getResource("");
+            }
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
         if(null!=url){
             String path = url.getPath();
             if(path.startsWith("file:")){
@@ -46,8 +60,6 @@ public class QuickHttpConfig {
             if (path.contains("jar")) {
                 path = path.substring(0, path.lastIndexOf("."));
                 path = path.substring(0, path.lastIndexOf("/"));
-            } else {
-                path = path.replace("target/classes/", "");
             }
             QuickHttpConfig.cookiesFile = new File(path+"/cookies.json");
             logger.debug("[cookie文件路径]{}",QuickHttpConfig.cookiesFile.getAbsolutePath());

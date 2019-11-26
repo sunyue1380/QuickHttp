@@ -91,6 +91,8 @@ public interface Connection {
 
     Connection cookies(Map<String, String> cookies);
 
+    Connection basicAuth(String username, String password);
+
     Connection charset(String charset);
 
     /**不发送Cookie头*/

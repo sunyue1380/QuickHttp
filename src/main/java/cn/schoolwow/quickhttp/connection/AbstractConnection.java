@@ -285,6 +285,13 @@ public class AbstractConnection implements Connection{
     }
 
     @Override
+    public Connection basicAuth(String username, String password) {
+        String encoded = Base64.getEncoder().encodeToString((username+":"+password).getBytes());
+        headers.put("Authorization","Basic "+encoded);
+        return this;
+    }
+
+    @Override
     public Connection charset(String charset) {
         this.charset = charset;
         return this;

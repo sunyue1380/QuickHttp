@@ -41,7 +41,7 @@ public class AbstractConnection implements Connection{
     /**Data信息*/
     private Map<String,String> dataMap = new HashMap<>();
     /**DataFile信息*/
-    private Map<String,File> dataFileMap = new HashMap<>();
+    private Map<String,File> dataFileMap = new IdentityHashMap<>();
     /**超时设置*/
     private int timeout = 3000;
     /**自动重定向*/
@@ -206,7 +206,8 @@ public class AbstractConnection implements Connection{
 
     @Override
     public Connection data(String key, File file) {
-        dataFileMap.put(key,file);
+        //IdentityHashMap的判断依据是==,故new String(key)时必要的,不要删除此代码
+        dataFileMap.put(new String(key),file);
         return this;
     }
 

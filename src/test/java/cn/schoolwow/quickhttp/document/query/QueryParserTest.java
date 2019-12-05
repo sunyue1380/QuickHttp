@@ -1,15 +1,8 @@
 package cn.schoolwow.quickhttp.document.query;
 
-import cn.schoolwow.quickhttp.document.element.Element;
-import cn.schoolwow.quickhttp.document.element.Elements;
-import cn.schoolwow.quickhttp.document.parse.HTMLParser;
-import cn.schoolwow.quickhttp.document.parse.HTMLToken;
-import cn.schoolwow.quickhttp.document.parse.HTMLTokenParser;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;

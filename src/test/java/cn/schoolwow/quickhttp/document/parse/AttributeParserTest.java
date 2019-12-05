@@ -5,15 +5,17 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class AttributeParserTest {
     private Logger logger = LoggerFactory.getLogger(AttributeParser.class);
-
+    Map<String,String> attibuteMap = new HashMap<>();
+    
     @Test
     public void testBasic() {
         String attribute = "id=\"quote\" class='singleQuote'";
-        Map<String,String> attibuteMap = AttributeParser.parse(attribute);
+        AttributeParser.parse(attribute,attibuteMap);
         logger.info("[属性]{}",attibuteMap);
         Assert.assertEquals(2,attibuteMap.size());
         Assert.assertEquals(true,attibuteMap.containsKey("id"));
@@ -25,7 +27,7 @@ public class AttributeParserTest {
     @Test
     public void testBasic2() {
         String attribute = " style= \"width:100px; \"";
-        Map<String,String> attibuteMap = AttributeParser.parse(attribute);
+        AttributeParser.parse(attribute,attibuteMap);
         logger.info("[属性]{}",attibuteMap);
         Assert.assertEquals(1,attibuteMap.size());
         Assert.assertEquals(true,attibuteMap.containsKey("style"));
@@ -35,7 +37,7 @@ public class AttributeParserTest {
     @Test
     public void testBasic3(){
         String attribute = "type=password";
-        Map<String,String> attibuteMap = AttributeParser.parse(attribute);
+        AttributeParser.parse(attribute,attibuteMap);
         logger.info("[属性]{}",attibuteMap);
         Assert.assertEquals(1,attibuteMap.size());
         Assert.assertEquals(true,attibuteMap.containsKey("type"));
@@ -45,7 +47,7 @@ public class AttributeParserTest {
     @Test
     public void testOne(){
         String attribute = "disabled name = 'username'";
-        Map<String,String> attibuteMap = AttributeParser.parse(attribute);
+        AttributeParser.parse(attribute,attibuteMap);
         logger.info("[属性]{}",attibuteMap);
         Assert.assertEquals(2,attibuteMap.size());
         Assert.assertEquals(true,attibuteMap.containsKey("disabled"));
@@ -57,7 +59,7 @@ public class AttributeParserTest {
     @Test
     public void testSpace() {
         String attribute = "name = \"user name\"";
-        Map<String,String> attibuteMap = AttributeParser.parse(attribute);
+        AttributeParser.parse(attribute,attibuteMap);
         logger.info("[属性]{}",attibuteMap);
         Assert.assertEquals(1,attibuteMap.size());
         Assert.assertEquals(true,attibuteMap.containsKey("name"));
@@ -67,7 +69,7 @@ public class AttributeParserTest {
     @Test
     public void testSpace2() {
         String attribute = " ng-click = hello();";
-        Map<String,String> attibuteMap = AttributeParser.parse(attribute);
+        AttributeParser.parse(attribute,attibuteMap);
         logger.info("[属性]{}",attibuteMap);
         Assert.assertEquals(1,attibuteMap.size());
         Assert.assertEquals(true,attibuteMap.containsKey("ng-click"));
@@ -77,7 +79,7 @@ public class AttributeParserTest {
     @Test
     public void testAll() {
         String attribute = "disabled id=\"quote\" class = \"ha ha\" type=password ng-click = hello();";
-        Map<String,String> attibuteMap = AttributeParser.parse(attribute);
+        AttributeParser.parse(attribute,attibuteMap);
         logger.info("[属性]{}",attibuteMap);
         Assert.assertEquals(5,attibuteMap.size());
     }
@@ -85,7 +87,7 @@ public class AttributeParserTest {
     @Test
     public void testQuoteEnd() {
         String attribute = " curname=\"ygp\"data=\"{'pid': '73868', 'platform': 'pc'}\"";
-        Map<String,String> attibuteMap = AttributeParser.parse(attribute);
+        AttributeParser.parse(attribute,attibuteMap);
         logger.info("[属性]{}",attibuteMap);
         Assert.assertEquals(2,attibuteMap.size());
     }
@@ -93,7 +95,7 @@ public class AttributeParserTest {
     @Test
     public void testQuoteEnd2() {
         String attribute = " http-equiv=\"content-type\" content=\"text/html; charset=GBK\" ";
-        Map<String,String> attibuteMap = AttributeParser.parse(attribute);
+        AttributeParser.parse(attribute,attibuteMap);
         logger.info("[属性]{}",attibuteMap);
         Assert.assertEquals(2,attibuteMap.size());
     }

@@ -355,16 +355,16 @@ public class HTMLTokenParser {
             return childElements;
         }
 
-        @Override
-        public String toString(){
-            if(isComment){
-                return "<"+ownText+">";
-            }else if(isSingleNode){
-                return "<"+tagName+attribute+"/>";
-            }else{
-                return "<"+tagName+attribute+">"+ownOriginText.replaceAll("\r\n","换行符")+"</"+tagName+">";
-            }
-        }
+//        @Override
+//        public String toString(){
+//            if(isComment){
+//                return "<"+ownText+">";
+//            }else if(isSingleNode){
+//                return "<"+tagName+attribute+"/>";
+//            }else{
+//                return "<"+tagName+attribute+">"+ownOriginText.replaceAll("\r\n","换行符")+"</"+tagName+">";
+//            }
+//        }
 
         /**遍历栈,生成html字符串*/
         private String iterateChildTextElements(List<Element> childTextElements){

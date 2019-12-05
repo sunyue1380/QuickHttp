@@ -358,7 +358,16 @@ public class AbstractConnection implements Connection{
             if(redirectTimes>=QuickHttpConfig.maxRedirectTimes){
                 throw new IOException("重定向次数过多!当前次数:"+redirectTimes+",限制最大次数:"+QuickHttpConfig.maxRedirectTimes);
             }
-            this.url(response.header("Location"));
+            //处理相对路径形式的重定向
+            String redirectUrl = response.header("Location");
+            if(redirectUrl.startsWith("http")){
+                this.url(redirectUrl);
+            }else if(redirectUrl.startsWith("/")){
+                this.url(this.url.getProtocol()+"://"+this.url.getHost()+":"+this.url.getDefaultPort()+"/"+redirectUrl);
+            }else{
+                String u = url.toString();
+                this.url(u.substring(0,u.lastIndexOf("/"))+"/"+redirectUrl);
+            }
             redirectTimes++;
             response = execute();
         }
@@ -495,7 +504,7 @@ public class AbstractConnection implements Connection{
                     Set<Map.Entry<String, String>> entrySet = dataMap.entrySet();
                     for (Map.Entry<String, String> entry : entrySet) {
                         w.write("--"+boundary+"\r\n");
-                        w.write("Content-Disposition: form-data; name=\""+entry.getKey().replaceAll("\"", "%22")+"\"\r\n");
+                        w.write("Content-Disposition: form-data; name=\""+entry.getKey().replace("\"", "%22")+"\"\r\n");
                         w.write("\r\n");
                         w.write(entry.getValue());
                         w.write("\r\n");
@@ -504,8 +513,8 @@ public class AbstractConnection implements Connection{
                 Set<Map.Entry<String, File>> entrySet = dataFileMap.entrySet();
                 for (Map.Entry<String, File> entry : entrySet) {
                     File file = entry.getValue();
-                    String name = entry.getKey().replaceAll("\"", "%22");
-                    String fileName = file.getName().replaceAll("\"", "%22");
+                    String name = entry.getKey().replace("\"", "%22");
+                    String fileName = file.getName().replace("\"", "%22");
 
                     w.write("--"+boundary+"\r\n");
                     w.write("Content-Disposition: form-data; name=\""+name+"\"; filename=\""+fileName+"\"\r\n");

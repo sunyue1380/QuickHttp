@@ -6,9 +6,9 @@ public class HTMLToken {
     public String value;
     public TokenType tokenType;
 
-    public String toString() {
-        return value.replaceAll("\r\n", "换行符") + "[" + tokenType.name + "]";
-    }
+//    public String toString() {
+//        return value.replaceAll("\r\n", "换行符") + "[" + tokenType.name + "]";
+//    }
 
     public enum TokenType {
         openTag("开始标签"),

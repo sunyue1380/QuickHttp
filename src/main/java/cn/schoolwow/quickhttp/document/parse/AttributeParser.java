@@ -8,26 +8,30 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class AttributeParser {
-    private Logger logger = LoggerFactory.getLogger(AttributeParser.class);
-    private char[] chars; //输入参数
-    private int pos = 0; //当前位置
-    private int sectionStart=0; //token起始位置
-    private AttributeParser.State state;//起始状态
-    private Map<String,String> attributes = new HashMap<>();
-    private String currentKey;
+    private static Logger logger = LoggerFactory.getLogger(AttributeParser.class);
+    /**输入参数*/
+    private static char[] chars;
+    /**当前位置*/
+    private static int pos = 0;
+    /**token起始位置*/
+    private static int sectionStart=0;
+    /**当前key*/
+    private static String currentKey;
+    /**属性表*/
+    private static Map<String,String> attributes;
 
-    public static Map<String,String> parse(String attribute){
-        return new AttributeParser(attribute).attributes;
-    }
-
-    private AttributeParser(String attribute){
-        logger.trace("[解析属性]{}",attribute);
-        this.chars = attribute.toCharArray();
+    public static void parse(String attribute, Map<String,String> attributes){
+        AttributeParser.attributes = attributes;
+        chars =  attribute.toCharArray();
+        pos = 0;
+        sectionStart=0;
+        currentKey = null;
         parseAttribute();
     }
 
     /**词法分析*/
-    private void parseAttribute(){
+    private static void parseAttribute(){
+        AttributeParser.State state = null;
         //判断初始状态
         if(chars[pos]==' '){
             state = State.inSpace;
@@ -132,7 +136,7 @@ public class AttributeParser {
         logger.trace("[属性列表]{}", JSON.toJSONString(attributes));
     }
 
-    private void addAttribute(AttributeType attributeType){
+    private static void addAttribute(AttributeType attributeType){
         int count = pos-sectionStart;
         if(pos==chars.length-1&&chars[pos]!=' '){
             count++;
@@ -160,7 +164,7 @@ public class AttributeParser {
         sectionStart = pos;
     }
 
-    private boolean isLastEqual(){
+    private static boolean isLastEqual(){
         if(pos==0){
             return false;
         }
@@ -171,11 +175,11 @@ public class AttributeParser {
         return chars[last]=='=';
     }
 
-    private boolean isQuoteStartEnd(){
+    private static boolean isQuoteStartEnd(){
         return chars[pos]=='"'||chars[pos]=='\'';
     }
 
-    private boolean isKeyValueStart(){
+    private static boolean isKeyValueStart(){
         return chars[pos]=='_'||Character.isLetterOrDigit(chars[pos]);
     }
 

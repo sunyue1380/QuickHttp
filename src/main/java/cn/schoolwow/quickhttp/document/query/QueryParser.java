@@ -153,25 +153,25 @@ public class QueryParser {
             if(content.charAt(1)=='^'){
                 evaluator = new Evaluator.AttributeStarting(content.substring(2,content.length()-1));
             }else if(content.contains("^=")){
-                String[] tokens = escapeContent.split("\\^=");
-                ValidateUtil.checkArgument(tokens.length==2,"分割属性字符串失败!tokens:"+JSON.toJSONString(tokens));
-                evaluator = new Evaluator.AttributeWithValueStarting(tokens[0],tokens[1]);
+                String key = escapeContent.substring(0,escapeContent.indexOf("^="));
+                String value = escapeContent.substring(escapeContent.indexOf("^=")+2);
+                evaluator = new Evaluator.AttributeWithValueStarting(key,value);
             }else if(content.contains("$=")){
-                String[] tokens = escapeContent.split("\\$=");
-                ValidateUtil.checkArgument(tokens.length==2,"分割属性字符串失败!tokens:"+JSON.toJSONString(tokens));
-                evaluator = new Evaluator.AttributeWithValueEnding(tokens[0],tokens[1]);
+                String key = escapeContent.substring(0,escapeContent.indexOf("$="));
+                String value = escapeContent.substring(escapeContent.indexOf("$=")+2);
+                evaluator = new Evaluator.AttributeWithValueEnding(key,value);
             }else if(content.contains("*=")){
-                String[] tokens = escapeContent.split("\\*=");
-                ValidateUtil.checkArgument(tokens.length==2,"分割属性字符串失败!tokens:"+JSON.toJSONString(tokens));
-                evaluator = new Evaluator.AttributeWithValueContaining(tokens[0],tokens[1]);
+                String key = escapeContent.substring(0,escapeContent.indexOf("*="));
+                String value = escapeContent.substring(escapeContent.indexOf("*=")+2);
+                evaluator = new Evaluator.AttributeWithValueContaining(key,value);
             }else if(content.contains("~=")){
-                String[] tokens = escapeContent.split("\\~=");
-                ValidateUtil.checkArgument(tokens.length==2,"分割属性字符串失败!tokens:"+JSON.toJSONString(tokens));
-                evaluator = new Evaluator.AttributeWithValueMatching(tokens[0], Pattern.compile(tokens[1]));
+                String key = escapeContent.substring(0,escapeContent.indexOf("~="));
+                String pattern = escapeContent.substring(escapeContent.indexOf("~=")+2);
+                evaluator = new Evaluator.AttributeWithValueMatching(key,Pattern.compile(pattern));
             }else if(content.contains("=")){
-                String[] tokens = escapeContent.split("=");
-                ValidateUtil.checkArgument(tokens.length==2,"分割属性字符串失败!tokens:"+JSON.toJSONString(tokens));
-                evaluator = new Evaluator.AttributeWithValue(tokens[0], tokens[1]);
+                String key = escapeContent.substring(0,escapeContent.indexOf("="));
+                String value = escapeContent.substring(escapeContent.indexOf("=")+1);
+                evaluator = new Evaluator.AttributeWithValue(key,value);
             }else{
                 evaluator = new Evaluator.Attribute(content.substring(1,content.length()-1));
             }
@@ -285,18 +285,17 @@ public class QueryParser {
             int count = last-pos+1;
             String content = new String(chars,pos,count);
             String data = content.substring(content.indexOf("(")+1,content.lastIndexOf(")"));
-            String[] tokens = data.split("n");
             int a=-1,b=-1;
-            if(tokens.length==1){
+            if(data.contains("n")){
                 a=0;
-                b=Integer.parseInt(tokens[0]);
-            }else if(tokens.length==2){
-                if(tokens[0].equals("-")){
-                    a = -1;
-                }else{
-                    a=Integer.parseInt(tokens[0]);
+                b=Integer.parseInt(data);
+            }else{
+                String token1 = data.substring(0,data.indexOf("n"));
+                String token2 = data.substring(data.indexOf("n")+1);
+                if(!token1.equals("-")){
+                    a=Integer.parseInt(token1);
                 }
-                b=Integer.parseInt(tokens[1]);
+                b=Integer.parseInt(token2);
             }
             if(a<0&&b<0){
                 return 0;

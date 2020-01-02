@@ -1,4 +1,4 @@
-package cn.schoolwow.quickhttp.document.parse;
+package cn.schoolwow.quickhttp.document.parser;
 
 import com.alibaba.fastjson.JSON;
 import org.slf4j.Logger;

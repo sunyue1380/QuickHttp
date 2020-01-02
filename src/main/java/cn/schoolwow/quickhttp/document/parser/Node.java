@@ -1,4 +1,4 @@
-package cn.schoolwow.quickhttp.document.parse;
+package cn.schoolwow.quickhttp.document.parser;
 
 import java.util.ArrayList;
 import java.util.HashMap;

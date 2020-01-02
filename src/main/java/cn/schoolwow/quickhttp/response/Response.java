@@ -2,6 +2,7 @@ package cn.schoolwow.quickhttp.response;
 
 import cn.schoolwow.quickhttp.connection.Connection;
 import cn.schoolwow.quickhttp.document.Document;
+import cn.schoolwow.quickhttp.document.DocumentParser;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
@@ -71,6 +72,8 @@ public interface Response {
     BufferedInputStream bodyStream();
 
     Document parse() throws IOException;
+
+    DocumentParser parser() throws IOException;
 
     void close();
 

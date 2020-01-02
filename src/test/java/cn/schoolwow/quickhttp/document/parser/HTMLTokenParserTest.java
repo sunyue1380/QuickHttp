@@ -1,4 +1,4 @@
-package cn.schoolwow.quickhttp.document.parse;
+package cn.schoolwow.quickhttp.document.parser;
 
 import cn.schoolwow.quickhttp.document.element.Element;
 import org.junit.Assert;

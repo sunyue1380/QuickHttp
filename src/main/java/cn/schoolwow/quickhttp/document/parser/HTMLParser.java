@@ -1,4 +1,4 @@
-package cn.schoolwow.quickhttp.document.parse;
+package cn.schoolwow.quickhttp.document.parser;
 
 import cn.schoolwow.quickhttp.util.ValidateUtil;
 import org.slf4j.Logger;
@@ -14,7 +14,7 @@ public class HTMLParser {
     private int pos = 0; //当前位置
     private int sectionStart=0; //token起始位置
     private boolean singleNode; //是否是单节点标签
-    private boolean isInStyleOrScript; //是否在CSS或者JS中
+    private boolean inStyleOrScript; //是否在CSS或者JS中
     private State state = State.openingTag;//起始状态
     private List<HTMLToken> tokenList = new ArrayList<>(); //Token列表
     
@@ -122,10 +122,10 @@ public class HTMLParser {
                     }
                 }break;
                 case inTextContent:{
-                    if(isInStyleOrScript){
+                    if(inStyleOrScript){
                         if(isNextMatch("</script>")||isNextMatch("</style>")){
                             addToken(HTMLToken.TokenType.textContent);
-                            isInStyleOrScript = false;
+                            inStyleOrScript = false;
                             state = State.closingTag;
                         }
                     }else if(isNextMatch("</")){
@@ -179,12 +179,12 @@ public class HTMLParser {
         }
         if(tokenType.equals(HTMLToken.TokenType.tagName)){
             if(token.value.equals("script")||token.value.equals("style")){
-                isInStyleOrScript = true;
+                inStyleOrScript = true;
             }
         }
         if(tokenType.equals(HTMLToken.TokenType.closeTag)){
             if(token.value.contains("script")||token.value.contains("style")){
-                isInStyleOrScript = false;
+                inStyleOrScript = false;
             }
         }
         sectionStart = pos;

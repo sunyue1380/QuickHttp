@@ -2,6 +2,7 @@ package cn.schoolwow.quickhttp.response;
 
 import cn.schoolwow.quickhttp.QuickHttp;
 import cn.schoolwow.quickhttp.document.Document;
+import cn.schoolwow.quickhttp.document.DocumentParser;
 import cn.schoolwow.quickhttp.document.element.Element;
 import cn.schoolwow.quickhttp.document.element.Elements;
 import cn.schoolwow.quickhttp.domain.ResponseMeta;
@@ -48,6 +49,8 @@ public class AbstractResponse implements Response{
     private String body;
     /**Document对象*/
     private Document document;
+    /**Document对象*/
+    private DocumentParser documentParser;
 
     public AbstractResponse(HttpURLConnection httpURLConnection) throws IOException{
         this.httpURLConnection = httpURLConnection;
@@ -243,6 +246,17 @@ public class AbstractResponse implements Response{
             document = Document.parse(body);
         }
         return document;
+    }
+
+    @Override
+    public DocumentParser parser() throws IOException {
+        if(documentParser==null){
+            if(body==null){
+                body();
+            }
+            documentParser = DocumentParser.parse(body);
+        }
+        return documentParser;
     }
 
     @Override

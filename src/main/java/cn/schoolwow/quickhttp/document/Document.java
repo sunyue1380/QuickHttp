@@ -2,8 +2,8 @@ package cn.schoolwow.quickhttp.document;
 
 import cn.schoolwow.quickhttp.document.element.Element;
 import cn.schoolwow.quickhttp.document.element.Elements;
-import cn.schoolwow.quickhttp.document.parse.HTMLParser;
-import cn.schoolwow.quickhttp.document.parse.HTMLTokenParser;
+import cn.schoolwow.quickhttp.document.parser.HTMLParser;
+import cn.schoolwow.quickhttp.document.parser.HTMLTokenParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

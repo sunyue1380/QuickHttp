@@ -7,6 +7,7 @@ import com.alibaba.fastjson.JSONObject;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpCookie;
 import java.net.Proxy;
 import java.net.URL;
@@ -61,6 +62,8 @@ public interface Connection {
 
     Connection followRedirects(boolean followRedirects);
 
+    Connection method(String method);
+
     Connection method(Method method);
 
     Connection ignoreHttpErrors(boolean ignoreHttpErrors);
@@ -70,6 +73,8 @@ public interface Connection {
     Connection data(String key, String value);
 
     Connection data(String key, File file);
+
+    Connection data(String key, String name, InputStream inputStream);
 
     Connection data(Map<String, String> data);
 

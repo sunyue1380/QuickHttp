@@ -56,6 +56,9 @@ public class AbstractResponse implements Response{
         this.httpURLConnection = httpURLConnection;
         this.statusCode = httpURLConnection.getResponseCode();
         this.statusMessage = httpURLConnection.getResponseMessage();
+        if(null==this.statusMessage){
+            this.statusMessage = "";
+        }
         this.httpCookieList = QuickHttp.getCookies(httpURLConnection.getURL());
         //提取头部信息
         Map<String, List<String>> headerFields = httpURLConnection.getHeaderFields();

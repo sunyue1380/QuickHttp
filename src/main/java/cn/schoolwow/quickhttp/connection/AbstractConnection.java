@@ -14,8 +14,10 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.*;
 import java.io.*;
 import java.net.*;
+import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.*;
@@ -179,6 +181,18 @@ public class AbstractConnection implements Connection{
     }
 
     @Override
+    public Connection method(String method) {
+        for(Method methodEnum:Method.values()){
+            if(methodEnum.name().equalsIgnoreCase(method)){
+                this.method = methodEnum;
+                break;
+            }
+        }
+        ValidateUtil.checkNotNull(this.method,"不支持的请求方法!"+method);
+        return this;
+    }
+
+    @Override
     public Connection method(Method method) {
         ValidateUtil.checkNotNull(method,"请求方法不能为空!");
         this.method = method;
@@ -208,6 +222,18 @@ public class AbstractConnection implements Connection{
     public Connection data(String key, File file) {
         //IdentityHashMap的判断依据是==,故new String(key)时必要的,不要删除此代码
         dataFileMap.put(new String(key),file);
+        return this;
+    }
+
+    @Override
+    public Connection data(String key, String name, InputStream inputStream){
+        try {
+            File file = File.createTempFile("QuickHttp_","_"+name);
+            Files.copy(inputStream,file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            dataFileMap.put(new String(key),file);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return this;
     }
 
@@ -363,7 +389,7 @@ public class AbstractConnection implements Connection{
             if(redirectUrl.startsWith("http")){
                 this.url(redirectUrl);
             }else if(redirectUrl.startsWith("/")){
-                this.url(this.url.getProtocol()+"://"+this.url.getHost()+":"+this.url.getDefaultPort()+"/"+redirectUrl);
+                this.url(this.url.getProtocol()+"://"+this.url.getHost()+":"+(this.url.getPort()==-1?this.url.getDefaultPort():this.url.getPort())+redirectUrl);
             }else{
                 String u = url.toString();
                 this.url(u.substring(0,u.lastIndexOf("/"))+"/"+redirectUrl);

@@ -286,15 +286,15 @@ public class QueryParser {
             String data = content.substring(content.indexOf("(")+1,content.lastIndexOf(")"));
             int a=-1,b=-1;
             if(data.contains("n")){
-                a=0;
-                b=Integer.parseInt(data);
-            }else{
                 String token1 = data.substring(0,data.indexOf("n"));
                 String token2 = data.substring(data.indexOf("n")+1);
                 if(!token1.equals("-")){
                     a=Integer.parseInt(token1);
                 }
                 b=Integer.parseInt(token2);
+            }else{
+                a=0;
+                b=Integer.parseInt(data);
             }
             if(a<0&&b<0){
                 return 0;

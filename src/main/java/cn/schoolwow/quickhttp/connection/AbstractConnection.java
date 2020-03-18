@@ -227,8 +227,14 @@ public class AbstractConnection implements Connection{
 
     @Override
     public Connection data(String key, String name, InputStream inputStream){
+        data(key,name,"QuickHttpTempFile_"+System.currentTimeMillis()+".tmp",inputStream);
+        return this;
+    }
+
+    @Override
+    public Connection data(String key, String name, String fileName, InputStream inputStream){
         try {
-            File file = File.createTempFile("QuickHttp_","_"+name);
+            File file = new File(System.getProperty("java.io.tmpdir")+File.separator+"quickhttp"+File.separator+fileName);
             Files.copy(inputStream,file.toPath(), StandardCopyOption.REPLACE_EXISTING);
             dataFileMap.put(new String(key),file);
         } catch (IOException e) {

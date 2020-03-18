@@ -76,6 +76,8 @@ public interface Connection {
 
     Connection data(String key, String name, InputStream inputStream);
 
+    Connection data(String key, String name, String fileName, InputStream inputStream);
+
     Connection data(Map<String, String> data);
 
     Connection requestBody(String body);

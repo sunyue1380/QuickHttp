@@ -34,6 +34,9 @@ public interface Response {
     /**获取文件名*/
     String filename();
 
+    /**是否支持分段下载*/
+    boolean acceptRanges();
+
     /**是否有该Header*/
     boolean hasHeader(String name);
 

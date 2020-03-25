@@ -58,6 +58,13 @@ public interface Connection {
 
     Connection ajax();
 
+    /**
+     * 设置分段下载
+     * @param start 开始字节
+     * @param end 结束字节(0表示获取剩下所有字节)
+     * */
+    Connection ranges(long start, long end);
+
     Connection timeout(int millis);
 
     Connection followRedirects(boolean followRedirects);

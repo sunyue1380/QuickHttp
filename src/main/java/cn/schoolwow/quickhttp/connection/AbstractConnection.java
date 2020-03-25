@@ -168,6 +168,11 @@ public class AbstractConnection implements Connection{
     }
 
     @Override
+    public Connection ranges(long start, long end) {
+        return header("Range","bytes="+start+"-"+(end>0?end:""));
+    }
+
+    @Override
     public Connection timeout(int millis) {
         ValidateUtil.checkArgument(millis>=0,"超时时间必须大于0!millis:"+millis);
         this.timeout = millis;

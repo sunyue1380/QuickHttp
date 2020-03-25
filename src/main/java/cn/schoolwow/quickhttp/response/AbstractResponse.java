@@ -146,6 +146,11 @@ public class AbstractResponse implements Response{
     }
 
     @Override
+    public boolean acceptRanges() {
+        return hasHeaderWithValue("Accept-Ranges","bytes");
+    }
+
+    @Override
     public boolean hasHeader(String name) {
         return headerMap.containsKey(name);
     }

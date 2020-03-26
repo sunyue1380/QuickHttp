@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.*;
 import java.io.*;
 import java.net.*;
-import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -29,8 +28,6 @@ public class AbstractConnection implements Connection{
     private static final char[] mimeBoundaryChars =
             "-_1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
     private static final int boundaryLength = 32;
-    /**保存历史记录*/
-    private static Map<String,String> historyMap = new HashMap<>();
 
     /**访问地址*/
     private URL url;
@@ -97,7 +94,15 @@ public class AbstractConnection implements Connection{
         return new AbstractConnection(url);
     }
 
+    public static Connection getConnection(URL url){
+        return new AbstractConnection(url);
+    }
+
     private AbstractConnection(String url){
+        this.url(url);
+    }
+
+    private AbstractConnection(URL url){
         this.url(url);
     }
 
@@ -413,7 +418,6 @@ public class AbstractConnection implements Connection{
                 throw new IOException("http状态异常!statusCode:"+response.statusCode()+",访问地址:"+url.toExternalForm());
             }
         }
-        historyMap.put(url.getHost(),url.toString());
         if(QuickHttpConfig.interceptor!=null){
             QuickHttpConfig.interceptor.afterConnection(this,response);
         }
@@ -444,6 +448,21 @@ public class AbstractConnection implements Connection{
                 callBack.onError(this,e);
             }
         });
+    }
+
+    @Override
+    public Connection clone(){
+        return QuickHttp.connect(url)
+                .headers(headers)
+                .data(dataMap)
+                .timeout(timeout)
+                .followRedirects(followRedirects)
+                .ignoreHttpErrors(ignoreHttpErrors)
+                .requestBody(requestBody)
+                .charset(charset)
+                .contentType(contentType)
+                .userAgent(userAgent)
+                .retryTimes(retryTimes);
     }
 
     /**创建HttppUrlConnection对象*/
@@ -492,14 +511,6 @@ public class AbstractConnection implements Connection{
         logger.debug("[设置用户代理]UserAgent:{}",userAgent);
         //设置Content-Encoding
         httpURLConnection.setRequestProperty("Accept-Encoding","gzip, deflate");
-        //设置Referer
-        if(QuickHttpConfig.refer&&!historyMap.isEmpty()&&!headers.containsKey("Referer")){
-            String referer = historyMap.get(url.getHost());
-            if(referer!=null&&!referer.equals("")){
-                httpURLConnection.setRequestProperty("Referer",referer);
-                logger.debug("[设置Referer]Referer:{}",referer);
-            }
-        }
         //设置头部
         {
             Set<Map.Entry<String, String>> entrySet = headers.entrySet();

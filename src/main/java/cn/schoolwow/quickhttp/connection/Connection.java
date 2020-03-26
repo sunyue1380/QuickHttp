@@ -14,7 +14,7 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
-public interface Connection {
+public interface Connection extends Cloneable{
     enum UserAgent {
         CHROME("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36")
         ,ANDROID("Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Mobile Safari/537.36")
@@ -117,4 +117,6 @@ public interface Connection {
     Response execute() throws IOException;
 
     void enqueue(Response.CallBack callBack);
+
+    Connection clone();
 }

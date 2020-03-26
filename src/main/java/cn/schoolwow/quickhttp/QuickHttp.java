@@ -357,6 +357,14 @@ public class QuickHttp {
         return AbstractConnection.getConnection(url);
     }
 
+    /**
+     * 访问url
+     * @param url 地址
+     * */
+    public static Connection connect(URL url){
+        return AbstractConnection.getConnection(url);
+    }
+
     private static String getTopHost(String host){
         //设置成顶级域名
         int endIndex = host.lastIndexOf(".");

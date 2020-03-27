@@ -14,11 +14,14 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.net.*;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.Set;
 
 public class QuickHttp {
     private static Logger logger = LoggerFactory.getLogger(QuickHttp.class);
-    private static CookieManager cookieManager = new CookieManager();
+    public static CookieManager cookieManager = new CookieManager();
     static{
         cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER);
         CookieHandler.setDefault(cookieManager);
@@ -35,7 +38,6 @@ public class QuickHttp {
                     sb.append(scanner.nextLine());
                 }
                 JSONArray array = JSON.parseArray(sb.toString());
-                List<HttpCookie> httpCookieList = new ArrayList<>();
                 for(int i=0;i<array.size();i++){
                     JSONObject o = array.getJSONObject(i);
                     HttpCookie httpCookie = new HttpCookie(o.getString("name"),o.getString("value"));
@@ -53,22 +55,38 @@ public class QuickHttp {
                     httpCookie.setComment(o.getString("comment"));
                     httpCookie.setCommentURL(o.getString("commentURL"));
                     httpCookie.setVersion(0);
-                    httpCookieList.add(httpCookie);
+
+                    QuickHttp.addCookie(httpCookie,new URL("http://"+httpCookie.getDomain().substring(1)));
                 }
-                QuickHttp.addCookie(httpCookieList);
-                logger.info("[载入cookie文件]载入cookie个数:{}",httpCookieList.size());
+                logger.info("[载入cookie文件]载入cookie个数:{}",array.size());
             } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (MalformedURLException e) {
                 e.printStackTrace();
             }
         }
     }
 
     /**
-     * 设置Cookie策略
-     * @param cookieHandler Cookie策略
+     * 不要自动设置Cookie
      * */
-    public static void cookieHandler(CookieHandler cookieHandler){
-        CookieHandler.setDefault(cookieHandler);
+    public static void noCookie(){
+        CookieHandler.setDefault(null);
+    }
+
+    /**
+     * 恢复Cookie策略
+     * */
+    public static void restoreCookie(){
+        CookieHandler.setDefault(cookieManager);
+    }
+
+    /**
+     * 设置Cookie策略
+     * @param cookiePolicy cookie策略
+     * */
+    public static void setCookiePolicy(CookiePolicy cookiePolicy){
+        cookieManager.setCookiePolicy(cookiePolicy);
     }
 
     /**
@@ -135,21 +153,22 @@ public class QuickHttp {
         ValidateUtil.checkNotNull(u,"URL不能为空!");
         HttpCookie httpCookie = new HttpCookie(name,value);
         httpCookie.setMaxAge(3600000);
-        httpCookie.setDomain(getTopHost(u.getHost()));
+//        httpCookie.setDomain(getTopHost(u.getHost()));
+        httpCookie.setDomain("."+u.getHost());
         httpCookie.setPath("/");
         httpCookie.setVersion(0);
         httpCookie.setDiscard(false);
-        addCookie(httpCookie);
+        addCookie(httpCookie,u);
     }
 
     /**
      * 添加Cookie
      * @param httpCookie Cookie对象
      * */
-    public static void addCookie(HttpCookie httpCookie){
+    public static void addCookie(HttpCookie httpCookie, URL url){
         try {
-            URI uri = new URI(httpCookie.getDomain());
-            cookieManager.getCookieStore().add(uri,httpCookie);
+            logger.info("[添加Cookie]uri:{},cookie:{}",url.toURI(),httpCookie.getName()+"="+httpCookie.getValue());
+            cookieManager.getCookieStore().add(url.toURI(),httpCookie);
         } catch (URISyntaxException e) {
             e.printStackTrace();
         }
@@ -159,9 +178,9 @@ public class QuickHttp {
      * 添加Cookie
      * @param httpCookieList Cookie列表
      * */
-    public static void addCookie(List<HttpCookie> httpCookieList){
+    public static void addCookie(List<HttpCookie> httpCookieList, URL url){
         for(HttpCookie httpCookie:httpCookieList){
-            addCookie(httpCookie);
+            addCookie(httpCookie,url);
         }
     }
 
@@ -225,7 +244,6 @@ public class QuickHttp {
      * */
     public static List<HttpCookie> getCookies(URL u){
         try {
-            CookieManager cookieManager = ((CookieManager) CookieHandler.getDefault());
             return cookieManager.getCookieStore().get(u.toURI());
         } catch (URISyntaxException e) {
             e.printStackTrace();
@@ -252,7 +270,6 @@ public class QuickHttp {
      * */
     public static String getCookieString(URL u){
         try {
-            CookieManager cookieManager = ((CookieManager) CookieHandler.getDefault());
             List<HttpCookie> httpCookieList = cookieManager.getCookieStore().get(u.toURI());
             StringBuilder builder = new StringBuilder();
             for(HttpCookie httpCookie:httpCookieList){
@@ -363,16 +380,5 @@ public class QuickHttp {
      * */
     public static Connection connect(URL url){
         return AbstractConnection.getConnection(url);
-    }
-
-    private static String getTopHost(String host){
-        //设置成顶级域名
-        int endIndex = host.lastIndexOf(".");
-        int startIndex = endIndex-1;
-        while(startIndex>0&&host.charAt(startIndex)!='.'){
-            startIndex--;
-        }
-        host = host.substring(startIndex);
-        return host;
     }
 }

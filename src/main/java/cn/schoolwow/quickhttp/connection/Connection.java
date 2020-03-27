@@ -109,9 +109,6 @@ public interface Connection extends Cloneable{
 
     Connection charset(String charset);
 
-    /**不发送Cookie头*/
-    Connection noCookie();
-
     Connection retryTimes(int retryTimes);
 
     Response execute() throws IOException;

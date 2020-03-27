@@ -59,8 +59,8 @@ public class AbstractConnection implements Connection{
     private int retryTimes = -1;
     /**重定向次数*/
     private int redirectTimes = 0;
-    /**Cookie*/
-    private String hostCookie;
+    /**保存HttpCookie*/
+    private List<HttpCookie> httpCookieList = new ArrayList<>();
     /**自定义SSL工厂*/
     private static SSLSocketFactory sslSocketFactory;
     /**HostnameVerifier*/
@@ -280,11 +280,7 @@ public class AbstractConnection implements Connection{
     @Override
     public Connection header(String name, String value) {
         ValidateUtil.checkNotEmpty(name,"name不能为空!");
-        if(name.toLowerCase().equals("cookie")){
-            QuickHttp.addCookie(value,this.url);
-        }else{
-            this.headers.put(name,value);
-        }
+        this.headers.put(name,value);
         return this;
     }
 
@@ -300,13 +296,19 @@ public class AbstractConnection implements Connection{
 
     @Override
     public Connection cookie(String name, String value) {
-        QuickHttp.addCookie(name,value,this.url);
+        HttpCookie httpCookie = new HttpCookie(name,value);
+        httpCookie.setMaxAge(3600000);
+        httpCookie.setDomain("."+url.getHost());
+        httpCookie.setPath("/");
+        httpCookie.setVersion(0);
+        httpCookie.setDiscard(false);
+        httpCookieList.add(httpCookie);
         return this;
     }
 
     @Override
     public Connection cookie(HttpCookie httpCookie) {
-        QuickHttp.addCookie(httpCookie);
+        httpCookieList.add(httpCookie);
         return this;
     }
 
@@ -337,13 +339,6 @@ public class AbstractConnection implements Connection{
     @Override
     public Connection charset(String charset) {
         this.charset = charset;
-        return this;
-    }
-
-    @Override
-    public Connection noCookie() {
-        hostCookie = QuickHttp.getCookieString(url);
-        QuickHttp.removeCookie(url);
         return this;
     }
 
@@ -379,20 +374,24 @@ public class AbstractConnection implements Connection{
             retryTimes = QuickHttpConfig.retryTimes;
         }
         Response response = null;
-        for(int i=0;i<=retryTimes;i++){
-            try {
-                HttpURLConnection connection = createHttpUrlConnection(parameterBuilder);
-                response = new AbstractResponse(connection);
-                break;
-            }catch (SocketTimeoutException | ConnectException e){
-                if(i==retryTimes){
-                    throw e;
+        //解决由于CookieHandler的全局作用域带来的错误修改Cookie值的情况
+        synchronized (QuickHttp.cookieManager){
+            QuickHttp.addCookie(httpCookieList,url);
+            for(int i=0;i<=retryTimes;i++){
+                try {
+                    HttpURLConnection connection = createHttpUrlConnection(parameterBuilder);
+                    response = new AbstractResponse(connection);
+                    break;
+                }catch (SocketTimeoutException | ConnectException e){
+                    if(i==retryTimes){
+                        throw e;
+                    }
+                    timeout = timeout*2;
+                    if(timeout>=QuickHttpConfig.maxTimeout){
+                        timeout = QuickHttpConfig.maxTimeout;
+                    }
+                    logger.warn("[链接超时]原因:{},第{}次尝试重连,总共{}次,设置超时时间:{},地址:{}",e.getMessage(),i,retryTimes,timeout,url);
                 }
-                timeout = timeout*2;
-                if(timeout>=QuickHttpConfig.maxTimeout){
-                    timeout = QuickHttpConfig.maxTimeout;
-                }
-                logger.warn("[链接超时]原因:{},第{}次尝试重连,总共{}次,设置超时时间:{},地址:{}",e.getMessage(),i,retryTimes,timeout,url);
             }
         }
         //HttpUrlConnection无法处理从http到https的重定向或者https到http的重定向
@@ -421,10 +420,6 @@ public class AbstractConnection implements Connection{
         if(QuickHttpConfig.interceptor!=null){
             QuickHttpConfig.interceptor.afterConnection(this,response);
         }
-        if(hostCookie!=null&&!hostCookie.isEmpty()){
-            QuickHttp.addCookie(hostCookie,url);
-            hostCookie = null;
-        }
         //写入文本文件
         List<HttpCookie> httpCookieList = QuickHttp.getCookies();
         if(httpCookieList.size()>0&&null!=QuickHttpConfig.cookiesFile){
@@ -452,7 +447,7 @@ public class AbstractConnection implements Connection{
 
     @Override
     public Connection clone(){
-        return QuickHttp.connect(url)
+        AbstractConnection connection = (AbstractConnection) QuickHttp.connect(url)
                 .headers(headers)
                 .data(dataMap)
                 .timeout(timeout)
@@ -463,6 +458,8 @@ public class AbstractConnection implements Connection{
                 .contentType(contentType)
                 .userAgent(userAgent)
                 .retryTimes(retryTimes);
+        connection.httpCookieList = httpCookieList;
+        return connection;
     }
 
     /**创建HttppUrlConnection对象*/
@@ -489,9 +486,11 @@ public class AbstractConnection implements Connection{
         {
             try {
                 CookieManager cookieManager = (CookieManager) CookieHandler.getDefault();
-                List<HttpCookie> httpCookieList = cookieManager.getCookieStore().get(url.toURI());
-                for(HttpCookie httpCookie:httpCookieList){
-                    logger.debug("[设置Cookie]{}:{},{}",httpCookie.getName(),httpCookie.getValue(),JSON.toJSONString(httpCookie));
+                if(null!=cookieManager){
+                    List<HttpCookie> httpCookieList = cookieManager.getCookieStore().get(url.toURI());
+                    for(HttpCookie httpCookie:httpCookieList){
+                        logger.debug("[设置Cookie]{}:{},{}",httpCookie.getName(),httpCookie.getValue(),JSON.toJSONString(httpCookie));
+                    }
                 }
             }catch (URISyntaxException e){
                 e.printStackTrace();

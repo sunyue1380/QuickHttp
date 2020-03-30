@@ -376,7 +376,7 @@ public class AbstractConnection implements Connection{
         Response response = null;
         //解决由于CookieHandler的全局作用域带来的错误修改Cookie值的情况
         synchronized (QuickHttp.cookieManager){
-            QuickHttp.addCookie(httpCookieList,url);
+            QuickHttp.addCookie(httpCookieList);
             for(int i=0;i<=retryTimes;i++){
                 try {
                     HttpURLConnection connection = createHttpUrlConnection(parameterBuilder);

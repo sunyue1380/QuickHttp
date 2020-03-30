@@ -41,8 +41,6 @@ public class AbstractResponse implements Response{
     private Map<String,String> headerMap = new HashMap<>();
     /**返回元数据*/
     private ResponseMeta responseMeta = new ResponseMeta();
-    /**本URI对应的Cookie*/
-    private List<HttpCookie> httpCookieList;
     /**输入流*/
     private BufferedInputStream bufferedInputStream;
     /**输入流字符串*/
@@ -59,7 +57,6 @@ public class AbstractResponse implements Response{
         if(null==this.statusMessage){
             this.statusMessage = "";
         }
-        this.httpCookieList = QuickHttp.getCookies(httpURLConnection.getURL());
         //提取头部信息
         Map<String, List<String>> headerFields = httpURLConnection.getHeaderFields();
         Set<String> keySet = headerFields.keySet();
@@ -172,22 +169,23 @@ public class AbstractResponse implements Response{
 
     @Override
     public boolean hasCookie(String name) {
-        return httpCookieList.stream().anyMatch(httpCookie -> httpCookie.getName().equals(name));
+        return null!=QuickHttp.getCookie(httpURLConnection.getURL().getHost(),name);
     }
 
     @Override
     public boolean hasCookieWithValue(String name, String value) {
-        return httpCookieList.stream().anyMatch(httpCookie -> httpCookie.getName().equals(name)&&httpCookie.getValue().equals(value));
+        HttpCookie httpCookie = QuickHttp.getCookie(httpURLConnection.getURL().getHost(),name);
+        return null!=httpCookie&&httpCookie.getValue().equals(value);
     }
 
     @Override
     public HttpCookie cookie(String name) {
-        return httpCookieList.stream().filter(httpCookie -> httpCookie.getName().equals(name)).findFirst().orElse(null);
+        return QuickHttp.getCookie(httpURLConnection.getURL().getHost(),name);
     }
 
     @Override
     public List<HttpCookie> cookieList() {
-        return this.httpCookieList;
+        return QuickHttp.getCookies(httpURLConnection.getURL().getHost());
     }
 
     @Override

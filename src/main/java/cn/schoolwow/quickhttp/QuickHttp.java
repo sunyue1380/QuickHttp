@@ -55,13 +55,10 @@ public class QuickHttp {
                     httpCookie.setComment(o.getString("comment"));
                     httpCookie.setCommentURL(o.getString("commentURL"));
                     httpCookie.setVersion(0);
-
-                    QuickHttp.addCookie(httpCookie,new URL("http://"+httpCookie.getDomain().substring(1)));
+                    QuickHttp.addCookie(httpCookie);
                 }
                 logger.info("[载入cookie文件]载入cookie个数:{}",array.size());
             } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (MalformedURLException e) {
                 e.printStackTrace();
             }
         }
@@ -98,125 +95,13 @@ public class QuickHttp {
     }
 
     /**
-     * 添加Cookie
-     * @param cookie Cookie字段
-     * @param url 域名
-     * */
-    public static void addCookie(String cookie,String url){
-        try {
-            addCookie(cookie,new URL(url));
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * 添加Cookie
-     * @param cookie Cookie字段
-     * @param u 域名
-     * */
-    public static void addCookie(String cookie,URL u){
-        if(null==cookie||cookie.isEmpty()){
-            return;
-        }
-        String[] tokens = cookie.split(";");
-        for(String token:tokens){
-            int startIndex = token.indexOf("=");
-            String name = token.substring(0,startIndex).trim();
-            String value = token.substring(startIndex+1).trim();
-            addCookie(name,value,u);
-        }
-    }
-
-    /**
-     * 添加Cookie
-     * @param name cookie键
-     * @param value cookie值
-     * @param url 域名
-     * */
-    public static void addCookie(String name, String value,String url){
-        try {
-            addCookie(name,value,new URL(url));
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * 添加Cookie
-     * @param name cookie键
-     * @param value cookie值
-     * @param u 域名
-     * */
-    public static void addCookie(String name, String value,URL u){
-        ValidateUtil.checkNotNull(name,"name不能为空!");
-        ValidateUtil.checkNotNull(u,"URL不能为空!");
-        HttpCookie httpCookie = new HttpCookie(name,value);
-        httpCookie.setMaxAge(3600000);
-//        httpCookie.setDomain(getTopHost(u.getHost()));
-        httpCookie.setDomain("."+u.getHost());
-        httpCookie.setPath("/");
-        httpCookie.setVersion(0);
-        httpCookie.setDiscard(false);
-        addCookie(httpCookie,u);
-    }
-
-    /**
-     * 添加Cookie
-     * @param httpCookie Cookie对象
-     * */
-    public static void addCookie(HttpCookie httpCookie, URL url){
-        try {
-            logger.info("[添加Cookie]uri:{},cookie:{}",url.toURI(),httpCookie.getName()+"="+httpCookie.getValue());
-            cookieManager.getCookieStore().add(url.toURI(),httpCookie);
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * 添加Cookie
-     * @param httpCookieList Cookie列表
-     * */
-    public static void addCookie(List<HttpCookie> httpCookieList, URL url){
-        for(HttpCookie httpCookie:httpCookieList){
-            addCookie(httpCookie,url);
-        }
-    }
-
-    /**
-     * 添加Cookie
-     * @param cookies Cookie键值对
-     * @param url 域名
-     * */
-    public static void addCookies(Map<String, String> cookies,String url){
-        try {
-            addCookies(cookies,new URL(url));
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * 添加Cookie
-     * @param cookies Cookie键值对
-     * @param u 域名
-     * */
-    public static void addCookies(Map<String, String> cookies,URL u){
-        Set<String> keySet = cookies.keySet();
-        for(String key:keySet){
-            addCookie(key, cookies.get(key),u);
-        }
-    }
-
-    /**
      * 获取Cookie
-     * @param url 域名
+     * @param domain 域名
      * @param name Cookie名称
      * */
-    public static HttpCookie getCookie(String url, String name){
+    public static HttpCookie getCookie(String domain, String name){
         ValidateUtil.checkNotEmpty(name,"name不能为空!");
-        List<HttpCookie> httpCookieList = getCookies(url);
+        List<HttpCookie> httpCookieList = getCookies(domain);
         for(HttpCookie httpCookie:httpCookieList){
             if(httpCookie.getName().equals(name)){
                 return httpCookie;
@@ -227,24 +112,15 @@ public class QuickHttp {
 
     /**
      * 获取域名下的所有Cookie
-     * @param url 域名
+     * @param domain 域名
      * */
-    public static List<HttpCookie> getCookies(String url){
-        try {
-            return getCookies(new URL(url));
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
+    public static List<HttpCookie> getCookies(String domain){
+        ValidateUtil.checkNotEmpty(domain,"域名不能为空!");
+        if(!domain.startsWith(".")){
+            domain = "."+domain;
         }
-        return null;
-    }
-
-    /**
-     * 获取域名下的所有Cookie
-     * @param u 域名
-     * */
-    public static List<HttpCookie> getCookies(URL u){
         try {
-            return cookieManager.getCookieStore().get(u.toURI());
+            return cookieManager.getCookieStore().get(new URI(domain));
         } catch (URISyntaxException e) {
             e.printStackTrace();
         }
@@ -253,33 +129,15 @@ public class QuickHttp {
 
     /**
      * 获取域名下Cookie头部
-     * @param u 域名
+     * @param domain 域名
      * */
-    public static String getCookieString(String u){
-        try {
-            return getCookieString(new URL(u));
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
+    public static String getCookieString(String domain){
+        List<HttpCookie> httpCookieList = getCookies(domain);
+        StringBuilder builder = new StringBuilder();
+        for(HttpCookie httpCookie:httpCookieList){
+            builder.append(httpCookie.getName()+"="+httpCookie.getValue()+";");
         }
-        return null;
-    }
-
-    /**
-     * 获取域名下Cookie头部
-     * @param u 域名
-     * */
-    public static String getCookieString(URL u){
-        try {
-            List<HttpCookie> httpCookieList = cookieManager.getCookieStore().get(u.toURI());
-            StringBuilder builder = new StringBuilder();
-            for(HttpCookie httpCookie:httpCookieList){
-                builder.append(httpCookie.getName()+"="+httpCookie.getValue()+";");
-            }
-            return builder.toString();
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        }
-        return null;
+        return builder.toString();
     }
 
     /**
@@ -290,31 +148,97 @@ public class QuickHttp {
     }
 
     /**
-     * 删除域名下所有Cookie
+     * 添加Cookie
+     * @param cookie Cookie字段
+     * @param domain 域名
      * */
-    public static boolean removeCookie(String url){
+    public static void addCookie(String cookie,String domain){
+        if(null==cookie||cookie.isEmpty()){
+            return;
+        }
+        String[] tokens = cookie.split(";");
+        for(String token:tokens){
+            int startIndex = token.indexOf("=");
+            String name = token.substring(0,startIndex).trim();
+            String value = token.substring(startIndex+1).trim();
+            addCookie(name,value,domain);
+        }
+    }
+
+    /**
+     * 添加Cookie
+     * @param name cookie键
+     * @param value cookie值
+     * @param domain 域名
+     * */
+    public static void addCookie(String name, String value,String domain){
+        ValidateUtil.checkNotNull(name,"name不能为空!");
+        ValidateUtil.checkNotNull(domain,"域名不能为空!");
+        HttpCookie httpCookie = new HttpCookie(name,value);
+        httpCookie.setMaxAge(3600000);
+        httpCookie.setDomain(domain);
+        httpCookie.setPath("/");
+        httpCookie.setVersion(0);
+        httpCookie.setDiscard(false);
+        addCookie(httpCookie);
+    }
+
+    /**
+     * 添加Cookie
+     * @param httpCookie Cookie对象
+     * */
+    public static void addCookie(HttpCookie httpCookie){
+        ValidateUtil.checkNotEmpty(httpCookie.getDomain(),"域名不能为空!");
+        if(!httpCookie.getDomain().startsWith(".")){
+            httpCookie.setDomain("."+httpCookie.getDomain());
+        }
         try {
-            return removeCookie(new URL(url));
-        } catch (MalformedURLException e) {
+            cookieManager.getCookieStore().add(new URI(httpCookie.getDomain()),httpCookie);
+        } catch (URISyntaxException e) {
             e.printStackTrace();
         }
-        return false;
+    }
+
+    /**
+     * 添加Cookie
+     * @param httpCookieList Cookie列表
+     * */
+    public static void addCookie(List<HttpCookie> httpCookieList){
+        for(HttpCookie httpCookie:httpCookieList){
+            addCookie(httpCookie);
+        }
+    }
+
+    /**
+     * 添加Cookie
+     * @param cookies Cookie键值对
+     * @param domain 域名
+     * */
+    public static void addCookies(Map<String, String> cookies,String domain){
+        Set<String> keySet = cookies.keySet();
+        for(String key:keySet){
+            addCookie(key,cookies.get(key),domain);
+        }
     }
 
     /**
      * 删除域名下所有Cookie
+     * @param domain 域名
      * */
-    public static boolean removeCookie(URL u){
+    public static void removeCookie(String domain){
+        List<HttpCookie> httpCookieList = getCookies(domain);
+        if(domain.startsWith(".")){
+            domain = "."+domain;
+        }
+        URI uri = null;
         try {
-            List<HttpCookie> httpCookieList = cookieManager.getCookieStore().get(u.toURI());
-            for(HttpCookie httpCookie:httpCookieList){
-                cookieManager.getCookieStore().remove(u.toURI(),httpCookie);
-            }
-            return true;
+            uri = new URI(domain);
         } catch (URISyntaxException e) {
             e.printStackTrace();
         }
-        return false;
+        for(HttpCookie httpCookie:httpCookieList){
+            cookieManager.getCookieStore().remove(uri,httpCookie);
+        }
     }
 
     /**

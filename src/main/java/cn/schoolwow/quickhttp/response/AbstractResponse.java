@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpCookie;
 import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -229,8 +230,22 @@ public class AbstractResponse implements Response{
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         byte[] bytes = new byte[QuickHttpConfig.BUFFER_SIZE];
         int length = 0 ;
-        while((length=bufferedInputStream.read(bytes,0,bytes.length))!=-1){
-            baos.write(bytes,0,length);
+        int retryTimes = QuickHttpConfig.retryTimes;
+        while(retryTimes>0){
+            try {
+                while((length=bufferedInputStream.read(bytes,0,bytes.length))!=-1){
+                    baos.write(bytes,0,length);
+                }
+                break;
+            }catch (SocketTimeoutException e){
+                logger.warn("[超时异常]{}",e.getMessage());
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e1) {
+                    e1.printStackTrace();
+                }
+            }
+            retryTimes--;
         }
         baos.flush();
         bytes = baos.toByteArray();

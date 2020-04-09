@@ -238,7 +238,7 @@ public class AbstractResponse implements Response{
                 }
                 break;
             }catch (SocketTimeoutException e){
-                logger.warn("[超时异常]{}",e.getMessage());
+                logger.warn("[读取超时]{},链接:{}",e.getMessage(),url());
                 try {
                     Thread.sleep(3000);
                 } catch (InterruptedException e1) {
@@ -246,6 +246,9 @@ public class AbstractResponse implements Response{
                 }
             }
             retryTimes--;
+        }
+        if(retryTimes==0){
+            throw new SocketTimeoutException("读取超时!链接:"+url());
         }
         baos.flush();
         bytes = baos.toByteArray();

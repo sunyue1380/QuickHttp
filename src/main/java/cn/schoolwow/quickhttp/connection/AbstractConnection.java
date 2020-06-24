@@ -1,6 +1,7 @@
 package cn.schoolwow.quickhttp.connection;
 
 import cn.schoolwow.quickhttp.QuickHttp;
+import cn.schoolwow.quickhttp.domain.RequestMeta;
 import cn.schoolwow.quickhttp.response.AbstractResponse;
 import cn.schoolwow.quickhttp.response.Response;
 import cn.schoolwow.quickhttp.util.QuickHttpConfig;
@@ -29,38 +30,7 @@ public class AbstractConnection implements Connection{
             "-_1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
     private static final int boundaryLength = 32;
 
-    /**访问地址*/
-    private URL url;
-    /**请求方法*/
-    private Method method = Method.GET;
-    /**Http代理*/
-    protected Proxy proxy;
-    /**Header信息*/
-    private Map<String,String> headers = new HashMap<>();
-    /**Data信息*/
-    private Map<String,String> dataMap = new HashMap<>();
-    /**DataFile信息*/
-    private Map<String,File> dataFileMap = new IdentityHashMap<>();
-    /**超时设置*/
-    private int timeout = 3000;
-    /**自动重定向*/
-    private boolean followRedirects = true;
-    /**是否忽略http状态异常*/
-    private boolean ignoreHttpErrors = false;
-    /**自定义请求体*/
-    private String requestBody;
-    /**请求编码*/
-    private String charset = "utf-8";
-    /**请求类型*/
-    private String contentType;
-    /**用户代理*/
-    private String userAgent = UserAgent.CHROME.userAgent;
-    /**重试次数*/
-    private int retryTimes = -1;
-    /**重定向次数*/
-    private int redirectTimes = 0;
-    /**保存HttpCookie*/
-    private List<HttpCookie> httpCookieList = new ArrayList<>();
+    private RequestMeta requestMeta = new RequestMeta();
     /**自定义SSL工厂*/
     private static SSLSocketFactory sslSocketFactory;
     /**HostnameVerifier*/
@@ -109,7 +79,7 @@ public class AbstractConnection implements Connection{
     @Override
     public Connection url(URL url) {
         ValidateUtil.checkNotNull(url,"URL不能为空!");
-        this.url = url;
+        requestMeta.url = url;
         return this;
     }
 
@@ -117,7 +87,7 @@ public class AbstractConnection implements Connection{
     public Connection url(String url) {
         ValidateUtil.checkNotEmpty(url,"URL不能为空!");
         try {
-            this.url = new URL(url);
+            requestMeta.url = new URL(url);
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("URL不合法!url:"+url, e);
         }
@@ -127,7 +97,7 @@ public class AbstractConnection implements Connection{
     @Override
     public Connection proxy(Proxy proxy) {
         ValidateUtil.checkNotNull(proxy,"代理对象不能为空!");
-        this.proxy = proxy;
+        requestMeta.proxy = proxy;
         return this;
     }
 
@@ -135,41 +105,41 @@ public class AbstractConnection implements Connection{
     public Connection proxy(String host, int port) {
         ValidateUtil.checkNotEmpty(host,"代理地址不能为空!");
         ValidateUtil.checkArgument(port>0,"代理端口必须大于0!port:"+port);
-        this.proxy = new Proxy(Proxy.Type.HTTP,new InetSocketAddress(host,port));
+        requestMeta.proxy = new Proxy(Proxy.Type.HTTP,new InetSocketAddress(host,port));
         return this;
     }
 
     @Override
     public Connection userAgent(String userAgent) {
         ValidateUtil.checkNotEmpty(userAgent,"用户代理不能为空!");
-        this.userAgent = userAgent;
+        requestMeta.headers.put("User-Agent",userAgent);
         return this;
     }
 
     @Override
     public Connection userAgent(UserAgent userAgent) {
         ValidateUtil.checkNotNull(userAgent,"用户代理不能为空!");
-        this.userAgent = userAgent.userAgent;
+        requestMeta.headers.put("User-Agent",userAgent.userAgent);
         return this;
     }
 
     @Override
     public Connection referrer(String referrer) {
         ValidateUtil.checkNotEmpty(referrer,"Referer值不能为空!");
-        headers.put("Referer",referrer);
+        requestMeta.headers.put("Referer",referrer);
         return this;
     }
 
     @Override
     public Connection contentType(String contentType) {
-        this.contentType = contentType;
+        requestMeta.contentType = contentType;
         return this;
     }
 
     @Override
     public Connection ajax() {
         return header("X-Requested-With", "XMLHttpRequest")
-                .header("Origin",url.getProtocol()+"://"+url.getHost());
+                .header("Origin",requestMeta.url.getProtocol()+"://"+requestMeta.url.getHost());
     }
 
     @Override
@@ -180,13 +150,13 @@ public class AbstractConnection implements Connection{
     @Override
     public Connection timeout(int millis) {
         ValidateUtil.checkArgument(millis>=0,"超时时间必须大于0!millis:"+millis);
-        this.timeout = millis;
+        requestMeta.timeout = millis;
         return this;
     }
 
     @Override
     public Connection followRedirects(boolean followRedirects) {
-        this.followRedirects = followRedirects;
+        requestMeta.followRedirects = followRedirects;
         return this;
     }
 
@@ -194,44 +164,44 @@ public class AbstractConnection implements Connection{
     public Connection method(String method) {
         for(Method methodEnum:Method.values()){
             if(methodEnum.name().equalsIgnoreCase(method)){
-                this.method = methodEnum;
+                requestMeta.method = methodEnum;
                 break;
             }
         }
-        ValidateUtil.checkNotNull(this.method,"不支持的请求方法!"+method);
+        ValidateUtil.checkNotNull(requestMeta.method,"不支持的请求方法!"+method);
         return this;
     }
 
     @Override
     public Connection method(Method method) {
         ValidateUtil.checkNotNull(method,"请求方法不能为空!");
-        this.method = method;
+        requestMeta.method = method;
         return this;
     }
 
     @Override
     public Connection ignoreHttpErrors(boolean ignoreHttpErrors) {
-        this.ignoreHttpErrors = ignoreHttpErrors;
+        requestMeta.ignoreHttpErrors = ignoreHttpErrors;
         return this;
     }
 
     @Override
     public Connection sslSocketFactory(SSLSocketFactory sslSocketFactory) {
-        ValidateUtil.checkNotNull(method,"sslSocketFactory不能为空!");
+        ValidateUtil.checkNotNull(sslSocketFactory,"sslSocketFactory不能为空!");
         AbstractConnection.sslSocketFactory = sslSocketFactory;
         return this;
     }
 
     @Override
     public Connection data(String key, String value) {
-        dataMap.put(key,value);
+        requestMeta.dataMap.put(key,value);
         return this;
     }
 
     @Override
     public Connection data(String key, File file) {
         //IdentityHashMap的判断依据是==,故new String(key)时必要的,不要删除此代码
-        dataFileMap.put(new String(key),file);
+        requestMeta.dataFileMap.put(new String(key),file);
         return this;
     }
 
@@ -246,7 +216,7 @@ public class AbstractConnection implements Connection{
         try {
             File file = new File(System.getProperty("java.io.tmpdir")+File.separator+"quickhttp"+File.separator+fileName);
             Files.copy(inputStream,file.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            dataFileMap.put(new String(key),file);
+            requestMeta.dataFileMap.put(new String(key),file);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -255,32 +225,32 @@ public class AbstractConnection implements Connection{
 
     @Override
     public Connection data(Map<String, String> data) {
-        dataMap.putAll(data);
+        requestMeta.dataMap.putAll(data);
         return this;
     }
 
     @Override
     public Connection requestBody(String body) {
-        this.requestBody = body;
+        requestMeta.requestBody = body;
         return this;
     }
 
     @Override
     public Connection requestBody(JSONObject body) {
-        this.requestBody = body.toJSONString();
+        requestMeta.requestBody = body.toJSONString();
         return this;
     }
 
     @Override
     public Connection requestBody(JSONArray array) {
-        this.requestBody = array.toJSONString();
+        requestMeta.requestBody = array.toJSONString();
         return this;
     }
 
     @Override
     public Connection header(String name, String value) {
         ValidateUtil.checkNotEmpty(name,"name不能为空!");
-        this.headers.put(name,value);
+        requestMeta.headers.put(name,value);
         return this;
     }
 
@@ -298,17 +268,17 @@ public class AbstractConnection implements Connection{
     public Connection cookie(String name, String value) {
         HttpCookie httpCookie = new HttpCookie(name,value);
         httpCookie.setMaxAge(3600000);
-        httpCookie.setDomain("."+url.getHost());
+        httpCookie.setDomain("."+requestMeta.url.getHost());
         httpCookie.setPath("/");
         httpCookie.setVersion(0);
         httpCookie.setDiscard(false);
-        httpCookieList.add(httpCookie);
+        requestMeta.httpCookieList.add(httpCookie);
         return this;
     }
 
     @Override
     public Connection cookie(HttpCookie httpCookie) {
-        httpCookieList.add(httpCookie);
+        requestMeta.httpCookieList.add(httpCookie);
         return this;
     }
 
@@ -332,89 +302,89 @@ public class AbstractConnection implements Connection{
     @Override
     public Connection basicAuth(String username, String password) {
         String encoded = Base64.getEncoder().encodeToString((username+":"+password).getBytes());
-        headers.put("Authorization","Basic "+encoded);
+        requestMeta.headers.put("Authorization","Basic "+encoded);
         return this;
     }
 
     @Override
     public Connection charset(String charset) {
-        this.charset = charset;
+        requestMeta.charset = charset;
         return this;
     }
 
     @Override
     public Connection retryTimes(int retryTimes){
-        this.retryTimes = retryTimes;
+        requestMeta.retryTimes = retryTimes;
         return this;
     }
 
     @Override
     public Response execute() throws IOException {
-        String protocol = url.getProtocol();
+        String protocol = requestMeta.url.getProtocol();
         ValidateUtil.checkArgument(protocol.matches("http(s)?"),"只支持http和https协议.当前协议:"+protocol);
         //生成参数序列化字符串
         StringBuilder parameterBuilder = new StringBuilder();
-        if(!dataMap.isEmpty()){
-            Set<Map.Entry<String,String>> entrySet = dataMap.entrySet();
+        if(!requestMeta.dataMap.isEmpty()){
+            Set<Map.Entry<String,String>> entrySet = requestMeta.dataMap.entrySet();
             for(Map.Entry<String,String> entry:entrySet){
                 String value = entry.getValue();
                 if(null!=value){
-                    value = URLEncoder.encode(value,charset);
+                    value = URLEncoder.encode(value,requestMeta.charset);
                 }
-                parameterBuilder.append(URLEncoder.encode(entry.getKey(),charset)+"="+value+"&");
+                parameterBuilder.append(URLEncoder.encode(entry.getKey(),requestMeta.charset)+"="+value+"&");
             }
             parameterBuilder.deleteCharAt(parameterBuilder.length()-1);
         }
         //创建Connection实例
-        if(proxy==null){
-            proxy = QuickHttpConfig.proxy;
+        if(requestMeta.proxy==null){
+            requestMeta.proxy = QuickHttpConfig.proxy;
         }
         //重试机制
-        if(retryTimes<0){
-            retryTimes = QuickHttpConfig.retryTimes;
+        if(requestMeta.retryTimes<0){
+            requestMeta.retryTimes = QuickHttpConfig.retryTimes;
         }
         Response response = null;
         //解决由于CookieHandler的全局作用域带来的错误修改Cookie值的情况
         synchronized (QuickHttp.cookieManager){
-            QuickHttp.addCookie(httpCookieList);
-            for(int i=0;i<=retryTimes;i++){
+            QuickHttp.addCookie(requestMeta.httpCookieList);
+            for(int i=0;i<=requestMeta.retryTimes;i++){
                 try {
                     HttpURLConnection connection = createHttpUrlConnection(parameterBuilder);
                     response = new AbstractResponse(connection);
                     break;
                 }catch (SocketTimeoutException | ConnectException e){
-                    if(i==retryTimes){
+                    if(i==requestMeta.retryTimes){
                         throw e;
                     }
-                    timeout = timeout*2;
-                    if(timeout>=QuickHttpConfig.maxTimeout){
-                        timeout = QuickHttpConfig.maxTimeout;
+                    requestMeta.timeout = requestMeta.timeout*2;
+                    if(requestMeta.timeout>=QuickHttpConfig.maxTimeout){
+                        requestMeta.timeout = QuickHttpConfig.maxTimeout;
                     }
-                    logger.warn("[链接超时]原因:{},第{}次尝试重连,总共{}次,设置超时时间:{},地址:{}",e.getMessage(),i,retryTimes,timeout,url);
+                    logger.warn("[链接超时]重试{}/{}次,原因:{},地址:{}",i,requestMeta.retryTimes,e.getMessage(),requestMeta.url);
                 }
             }
         }
         //HttpUrlConnection无法处理从http到https的重定向或者https到http的重定向
-        while(followRedirects&&response.statusCode()>=300&&response.statusCode()<400&&response.hasHeader("Location")){
-            if(redirectTimes>=QuickHttpConfig.maxRedirectTimes){
-                throw new IOException("重定向次数过多!当前次数:"+redirectTimes+",限制最大次数:"+QuickHttpConfig.maxRedirectTimes);
+        while(requestMeta.followRedirects&&response.statusCode()>=300&&response.statusCode()<400&&response.hasHeader("Location")){
+            if(requestMeta.redirectTimes>=QuickHttpConfig.maxRedirectTimes){
+                throw new IOException("重定向次数过多!当前次数:"+requestMeta.redirectTimes+",限制最大次数:"+QuickHttpConfig.maxRedirectTimes);
             }
             //处理相对路径形式的重定向
             String redirectUrl = response.header("Location");
             if(redirectUrl.startsWith("http")){
                 this.url(redirectUrl);
             }else if(redirectUrl.startsWith("/")){
-                this.url(this.url.getProtocol()+"://"+this.url.getHost()+":"+(this.url.getPort()==-1?this.url.getDefaultPort():this.url.getPort())+redirectUrl);
+                this.url(requestMeta.url.getProtocol()+"://"+requestMeta.url.getHost()+":"+(requestMeta.url.getPort()==-1?requestMeta.url.getDefaultPort():requestMeta.url.getPort())+redirectUrl);
             }else{
-                String u = url.toString();
+                String u = requestMeta.url.toString();
                 this.url(u.substring(0,u.lastIndexOf("/"))+"/"+redirectUrl);
             }
-            redirectTimes++;
+            requestMeta.redirectTimes++;
             response = execute();
         }
-        if(!ignoreHttpErrors){
+        if(!requestMeta.ignoreHttpErrors){
             if(response.statusCode()<200||response.statusCode()>=400){
-                throw new IOException("http状态异常!statusCode:"+response.statusCode()+",访问地址:"+url.toExternalForm());
+                throw new IOException("http状态异常!statusCode:"+response.statusCode()+",访问地址:"+requestMeta.url.toExternalForm());
             }
         }
         if(QuickHttpConfig.interceptor!=null){
@@ -446,109 +416,90 @@ public class AbstractConnection implements Connection{
     }
 
     @Override
+    public RequestMeta requestMeta() {
+        return this.requestMeta;
+    }
+
+    @Override
+    public Connection requestMeta(RequestMeta requestMeta) {
+        this.requestMeta = requestMeta;
+        return this;
+    }
+
+    @Override
     public Connection clone(){
-        AbstractConnection connection = (AbstractConnection) QuickHttp.connect(url)
-                .headers(headers)
-                .data(dataMap)
-                .timeout(timeout)
-                .followRedirects(followRedirects)
-                .ignoreHttpErrors(ignoreHttpErrors)
-                .requestBody(requestBody)
-                .charset(charset)
-                .contentType(contentType)
-                .userAgent(userAgent)
-                .retryTimes(retryTimes);
-        connection.httpCookieList = httpCookieList;
+        AbstractConnection connection = (AbstractConnection) QuickHttp.connect(this.requestMeta.url)
+                .requestMeta(requestMeta);
         return connection;
     }
 
     /**创建HttppUrlConnection对象*/
     private HttpURLConnection createHttpUrlConnection(StringBuilder parameterBuilder) throws IOException {
-        URL actualUrl = url;
+        URL actualUrl = requestMeta.url;
         //设置url请求参数
-        if(!method.hasBody()){
-            String parameter = (url.getQuery()==null?"":url.getQuery())+parameterBuilder.toString();
+        if(!requestMeta.method.hasBody()){
+            String parameter = (requestMeta.url.getQuery()==null?"":requestMeta.url.getQuery())+parameterBuilder.toString();
             if(parameter!=null&&!parameter.equals("")){
                 parameter = "?"+parameter;
             }
-            actualUrl = new URL(url.getProtocol()+"://"+url.getAuthority()+url.getPath()+parameter);
+            actualUrl = new URL(requestMeta.url.getProtocol()+"://"+requestMeta.url.getAuthority()+requestMeta.url.getPath()+parameter);
         }
         final HttpURLConnection httpURLConnection = (HttpURLConnection) (
-                proxy==null?actualUrl.openConnection():actualUrl.openConnection(proxy)
+                requestMeta.proxy==null?actualUrl.openConnection():actualUrl.openConnection(requestMeta.proxy)
         );
-        logger.info("[打开链接]地址:{} {},代理:{}",method.name(),actualUrl,proxy==null?"无":proxy.address());
+        logger.info("[请求行]{} {},代理:{}",requestMeta.method.name(),actualUrl,requestMeta.proxy==null?"无":requestMeta.proxy.address());
         //判断是否https
         if (httpURLConnection instanceof HttpsURLConnection) {
             ((HttpsURLConnection)httpURLConnection).setSSLSocketFactory(AbstractConnection.sslSocketFactory);
             ((HttpsURLConnection)httpURLConnection).setHostnameVerifier(AbstractConnection.hostnameVerifier);
         }
-        //当前Cookie
-        {
-            try {
-                CookieManager cookieManager = (CookieManager) CookieHandler.getDefault();
-                if(null!=cookieManager){
-                    List<HttpCookie> httpCookieList = cookieManager.getCookieStore().get(url.toURI());
-                    for(HttpCookie httpCookie:httpCookieList){
-                        logger.debug("[设置Cookie]{}:{},{}",httpCookie.getName(),httpCookie.getValue(),JSON.toJSONString(httpCookie));
-                    }
-                }
-            }catch (URISyntaxException e){
-                e.printStackTrace();
-            }
-        }
-        //设置请求方法
-        httpURLConnection.setRequestMethod(method.name());
-        logger.debug("[设置请求方法]设置Method:{}",method.name());
-        //设置超时时间
-        httpURLConnection.setConnectTimeout(timeout);
-        logger.debug("[设置链接超时时间]设置链接超时时间:{}",httpURLConnection.getConnectTimeout());
-        httpURLConnection.setReadTimeout(timeout);
-        logger.debug("[设置读取超时时间]设置读取超时时间:{}",httpURLConnection.getReadTimeout());
+        httpURLConnection.setRequestMethod(requestMeta.method.name());
+        httpURLConnection.setConnectTimeout(requestMeta.timeout);
+        httpURLConnection.setReadTimeout(requestMeta.timeout);
         httpURLConnection.setInstanceFollowRedirects(false);
-        //设置用户代理
-        httpURLConnection.setRequestProperty("User-Agent",userAgent);
-        logger.debug("[设置用户代理]UserAgent:{}",userAgent);
-        //设置Content-Encoding
-        httpURLConnection.setRequestProperty("Accept-Encoding","gzip, deflate");
+        requestMeta.headers.put("Accept-Encoding","gzip, deflate");
         //设置头部
         {
-            Set<Map.Entry<String, String>> entrySet = headers.entrySet();
+            Set<Map.Entry<String, String>> entrySet = requestMeta.headers.entrySet();
             for (Map.Entry<String, String> entry : entrySet) {
                 httpURLConnection.setRequestProperty(entry.getKey(), entry.getValue());
-                logger.debug("[设置头部]name:{},value:{}", entry.getKey(), entry.getValue());
             }
         }
+        logger.debug("[请求头部]{}",requestMeta.headers);
         if(QuickHttpConfig.interceptor!=null){
             QuickHttpConfig.interceptor.beforeConnect(this);
         }
 
         //执行请求
         httpURLConnection.setDoInput(true);
-        if(method.hasBody()){
+        if(requestMeta.method.hasBody()){
             //优先级 dataFile > requestBody > dataMap
             String boundary = null;
-            if(!dataFileMap.isEmpty()){
+            if(!requestMeta.dataFileMap.isEmpty()){
                 boundary = mimeBoundary();
-                httpURLConnection.setRequestProperty("Content-Type","multipart/form-data; boundary="+boundary+"; charset="+charset);
+                httpURLConnection.setRequestProperty("Content-Type","multipart/form-data; boundary="+boundary+"; charset="+requestMeta.charset);
                 httpURLConnection.setChunkedStreamingMode(0);
-            }else if(requestBody!=null&&!requestBody.equals("")){
-                httpURLConnection.setRequestProperty("Content-Type","application/json; charset="+charset+";");
-                httpURLConnection.setFixedLengthStreamingMode(requestBody.getBytes().length);
-            }else if(!dataMap.isEmpty()){
-                httpURLConnection.setRequestProperty("Content-Type","application/x-www-form-urlencoded; charset="+charset);
+                logger.debug("[请求体]multipart/form-data,{}",requestMeta.dataFileMap);
+            }else if(requestMeta.requestBody!=null&&!requestMeta.requestBody.equals("")){
+                httpURLConnection.setRequestProperty("Content-Type","application/json; charset="+requestMeta.charset+";");
+                httpURLConnection.setFixedLengthStreamingMode(requestMeta.requestBody.getBytes().length);
+                logger.debug("[请求体]application/json,{}",requestMeta.requestBody);
+            }else if(!requestMeta.dataMap.isEmpty()){
+                httpURLConnection.setRequestProperty("Content-Type","application/x-www-form-urlencoded; charset="+requestMeta.charset);
                 httpURLConnection.setFixedLengthStreamingMode(parameterBuilder.toString().getBytes().length);
+                logger.debug("[请求体]application/x-www-form-urlencoded,{}",requestMeta.dataMap);
             }
-            if(contentType!=null&&!contentType.isEmpty()){
-                httpURLConnection.setRequestProperty("Content-Type",contentType);
+            if(requestMeta.contentType!=null&&!requestMeta.contentType.isEmpty()){
+                httpURLConnection.setRequestProperty("Content-Type",requestMeta.contentType);
             }
 
             //开始正式写入数据
             httpURLConnection.setDoOutput(true);
             OutputStream outputStream = httpURLConnection.getOutputStream();
-            final BufferedWriter w = new BufferedWriter(new OutputStreamWriter(outputStream, charset));
-            if(!dataFileMap.isEmpty()){
-                if(!dataMap.isEmpty()) {
-                    Set<Map.Entry<String, String>> entrySet = dataMap.entrySet();
+            final BufferedWriter w = new BufferedWriter(new OutputStreamWriter(outputStream, requestMeta.charset));
+            if(!requestMeta.dataFileMap.isEmpty()){
+                if(!requestMeta.dataMap.isEmpty()) {
+                    Set<Map.Entry<String, String>> entrySet = requestMeta.dataMap.entrySet();
                     for (Map.Entry<String, String> entry : entrySet) {
                         w.write("--"+boundary+"\r\n");
                         w.write("Content-Disposition: form-data; name=\""+entry.getKey().replace("\"", "%22")+"\"\r\n");
@@ -557,7 +508,7 @@ public class AbstractConnection implements Connection{
                         w.write("\r\n");
                     }
                 }
-                Set<Map.Entry<String, File>> entrySet = dataFileMap.entrySet();
+                Set<Map.Entry<String, File>> entrySet = requestMeta.dataFileMap.entrySet();
                 for (Map.Entry<String, File> entry : entrySet) {
                     File file = entry.getValue();
                     String name = entry.getKey().replace("\"", "%22");
@@ -579,9 +530,9 @@ public class AbstractConnection implements Connection{
                     w.write("\r\n");
                 }
                 w.write("--"+boundary+"--\r\n");
-            }else if(requestBody!=null&&!requestBody.equals("")){
-                w.write(requestBody);
-            }else if(!dataMap.isEmpty()){
+            }else if(requestMeta.requestBody!=null&&!requestMeta.requestBody.equals("")){
+                w.write(requestMeta.requestBody);
+            }else if(!requestMeta.dataMap.isEmpty()){
                 w.write(parameterBuilder.toString());
             }
             w.flush();

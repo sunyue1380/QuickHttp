@@ -24,8 +24,6 @@ public class QuickHttpConfig {
     public static int maxRedirectTimes = 10;
     /**过滤器*/
     public static Interceptor interceptor;
-    /**开启Refer字段*/
-    public static boolean refer = false;
     /**Cookie存放地址*/
     public static File cookiesFile;
 

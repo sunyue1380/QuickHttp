@@ -1,5 +1,6 @@
 package cn.schoolwow.quickhttp.connection;
 
+import cn.schoolwow.quickhttp.domain.RequestMeta;
 import cn.schoolwow.quickhttp.response.Response;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
@@ -114,6 +115,10 @@ public interface Connection extends Cloneable{
     Response execute() throws IOException;
 
     void enqueue(Response.CallBack callBack);
+
+    RequestMeta requestMeta();
+
+    Connection requestMeta(RequestMeta requestMeta);
 
     Connection clone();
 }

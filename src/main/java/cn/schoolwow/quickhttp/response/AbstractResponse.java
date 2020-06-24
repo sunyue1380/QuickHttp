@@ -23,112 +23,79 @@ import java.net.SocketTimeoutException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 
 public class AbstractResponse implements Response{
     private Logger logger = LoggerFactory.getLogger(AbstractResponse.class);
-    /**HttpUrlConnection对象*/
-    private HttpURLConnection httpURLConnection;
-    /**状态码*/
-    private int statusCode;
-    /**消息*/
-    private String statusMessage;
-    /**编码格式*/
-    private String charset;
-    /**头部信息*/
-    private Map<String,String> headerMap = new HashMap<>();
     /**返回元数据*/
     private ResponseMeta responseMeta = new ResponseMeta();
-    /**输入流*/
-    private BufferedInputStream bufferedInputStream;
-    /**输入流字符串*/
-    private String body;
-    /**Document对象*/
-    private Document document;
-    /**Document对象*/
-    private DocumentParser documentParser;
 
     public AbstractResponse(HttpURLConnection httpURLConnection) throws IOException{
-        this.httpURLConnection = httpURLConnection;
-        this.statusCode = httpURLConnection.getResponseCode();
-        this.statusMessage = httpURLConnection.getResponseMessage();
-        if(null==this.statusMessage){
-            this.statusMessage = "";
+        responseMeta.httpURLConnection = httpURLConnection;
+        responseMeta.statusCode = httpURLConnection.getResponseCode();
+        responseMeta.statusMessage = httpURLConnection.getResponseMessage();
+        if(null==responseMeta.statusMessage){
+            responseMeta.statusMessage = "";
         }
         //提取头部信息
         Map<String, List<String>> headerFields = httpURLConnection.getHeaderFields();
         Set<String> keySet = headerFields.keySet();
         for(String key:keySet){
-            if(key==null){
-                continue;
-            }
-            String value = httpURLConnection.getHeaderField(key);
-            switch(key.toLowerCase()){
-                case "content-type":{
-                    responseMeta.contentType = value;
-                }break;
-                case "content-encoding":{
-                    responseMeta.contentEncoding = value;
-                }break;
-                case "content-length":{
-                    responseMeta.contentLength = Long.parseLong(value);
-                }break;
-                case "content-disposition":{
-                    responseMeta.contentDisposition = value;
-                }break;
-            }
-            headerMap.put(key,value);
+            responseMeta.headerMap.put(key,httpURLConnection.getHeaderField(key));
         }
-        headerMap = Collections.unmodifiableMap(headerMap);
-        logger.debug("[获取头部信息]headFields:{}", JSON.toJSONString(headerMap));
+        responseMeta.contentType = httpURLConnection.getContentType();
+        responseMeta.contentDisposition = httpURLConnection.getHeaderField("content-disposition");
         //提取body信息
         {
+            String contentEncoding = httpURLConnection.getContentEncoding();
             InputStream inputStream = httpURLConnection.getErrorStream()!=null?httpURLConnection.getErrorStream():httpURLConnection.getInputStream();
-            if(responseMeta.contentEncoding!=null&&!responseMeta.contentEncoding.isEmpty()){
-                if(responseMeta.contentEncoding.equals("gzip")){
-                    logger.debug("[返回gzip格式流]Content-Encoding:{}",responseMeta.contentEncoding);
+            if(contentEncoding!=null&&!contentEncoding.isEmpty()){
+                if(contentEncoding.equals("gzip")){
                     inputStream = new GZIPInputStream(inputStream);
-                }else if(responseMeta.contentEncoding.equals("deflate")){
-                    logger.debug("[返回deflate格式流]Content-Encoding:{}",responseMeta.contentEncoding);
+                }else if(contentEncoding.equals("deflate")){
                     inputStream = new InflaterInputStream(inputStream,new Inflater(true));
                 }
             }
-            bufferedInputStream = new BufferedInputStream(inputStream);
+            responseMeta.bufferedInputStream = new BufferedInputStream(inputStream);
         }
         getCharset();
+        logger.debug("[返回头]{} {}",responseMeta.statusCode,responseMeta.statusMessage);
+        logger.debug("[返回头部]{}",responseMeta.headerMap);
     }
 
     @Override
     public String url() {
-        return httpURLConnection.getURL().toString();
+        return responseMeta.httpURLConnection.getURL().toString();
     }
 
     @Override
     public int statusCode() {
-        return this.statusCode;
+        return responseMeta.statusCode;
     }
 
     @Override
     public String statusMessage() {
-        return this.statusMessage;
+        return responseMeta.statusMessage;
     }
 
     @Override
     public String charset() {
-        return this.charset;
+        return responseMeta.charset;
     }
 
     @Override
     public String contentType() {
-        return responseMeta.contentType;
+        return responseMeta.httpURLConnection.getContentType();
     }
 
     @Override
     public long contentLength() {
-        return responseMeta.contentLength;
+        return responseMeta.httpURLConnection.getContentLengthLong();
     }
 
     @Override
@@ -150,105 +117,101 @@ public class AbstractResponse implements Response{
 
     @Override
     public boolean hasHeader(String name) {
-        return headerMap.containsKey(name);
+        return responseMeta.headerMap.containsKey(name);
     }
 
     @Override
     public boolean hasHeaderWithValue(String name, String value) {
-        return hasHeader(name)&&headerMap.get(name).equals(value);
+        return hasHeader(name)&&responseMeta.headerMap.get(name).equals(value);
     }
 
     @Override
     public String header(String name) {
-        return headerMap.get(name);
+        return responseMeta.headerMap.get(name);
     }
 
     @Override
     public Map<String, String> headers() {
-        return headerMap;
+        return responseMeta.headerMap;
     }
 
     @Override
     public boolean hasCookie(String name) {
-        return null!=QuickHttp.getCookie(httpURLConnection.getURL().getHost(),name);
+        return null!=QuickHttp.getCookie(responseMeta.httpURLConnection.getURL().getHost(),name);
     }
 
     @Override
     public boolean hasCookieWithValue(String name, String value) {
-        HttpCookie httpCookie = QuickHttp.getCookie(httpURLConnection.getURL().getHost(),name);
+        HttpCookie httpCookie = QuickHttp.getCookie(responseMeta.httpURLConnection.getURL().getHost(),name);
         return null!=httpCookie&&httpCookie.getValue().equals(value);
     }
 
     @Override
     public HttpCookie cookie(String name) {
-        return QuickHttp.getCookie(httpURLConnection.getURL().getHost(),name);
+        return QuickHttp.getCookie(responseMeta.httpURLConnection.getURL().getHost(),name);
     }
 
     @Override
     public List<HttpCookie> cookieList() {
-        return QuickHttp.getCookies(httpURLConnection.getURL().getHost());
+        return QuickHttp.getCookies(responseMeta.httpURLConnection.getURL().getHost());
     }
 
     @Override
     public String body() throws IOException {
-        if(body!=null){
-            return body;
+        if(responseMeta.body!=null){
+            return responseMeta.body;
         }
         byte[] bytes = bodyAsBytes();
-        body = Charset.forName(charset).decode(ByteBuffer.wrap(bytes)).toString();
-        return body;
+        responseMeta.body = Charset.forName(responseMeta.charset).decode(ByteBuffer.wrap(bytes)).toString();
+        return responseMeta.body;
     }
 
     @Override
     public JSONObject bodyAsJSONObject() throws IOException {
         body();
-        JSONObject object = JSON.parseObject(body);
+        JSONObject object = JSON.parseObject(responseMeta.body);
         return object;
     }
 
     @Override
     public JSONArray bodyAsJSONArray() throws IOException {
         body();
-        JSONArray array = JSON.parseArray(body);
+        JSONArray array = JSON.parseArray(responseMeta.body);
         return array;
     }
 
     public JSONObject jsonpAsJSONObject() throws IOException {
         body();
-        int startIndex = body.indexOf("(")+1,endIndex = body.lastIndexOf(")");
-        return JSON.parseObject(body.substring(startIndex,endIndex));
+        int startIndex = responseMeta.body.indexOf("(")+1,endIndex = responseMeta.body.lastIndexOf(")");
+        return JSON.parseObject(responseMeta.body.substring(startIndex,endIndex));
     }
 
     public JSONArray jsonpAsJSONArray() throws IOException {
         body();
-        int startIndex = body.indexOf("(")+1,endIndex = body.lastIndexOf(")");
-        return JSON.parseArray(body.substring(startIndex,endIndex));
+        int startIndex = responseMeta.body.indexOf("(")+1,endIndex = responseMeta.body.lastIndexOf(")");
+        return JSON.parseArray(responseMeta.body.substring(startIndex,endIndex));
     }
 
     @Override
     public byte[] bodyAsBytes() throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         byte[] bytes = new byte[QuickHttpConfig.BUFFER_SIZE];
-        int length = 0 ;
+        int length = 0;
         int retryTimes = QuickHttpConfig.retryTimes;
-        while(retryTimes>0){
+        for(int i=0;i<retryTimes;i++){
             try {
-                while((length=bufferedInputStream.read(bytes,0,bytes.length))!=-1){
+                while((length=responseMeta.bufferedInputStream.read(bytes,0,bytes.length))!=-1){
                     baos.write(bytes,0,length);
                 }
                 break;
             }catch (SocketTimeoutException e){
-                logger.warn("[读取超时]{},链接:{}",e.getMessage(),url());
+                logger.warn("[读取超时]重试{}/{},原因:{},链接:{}",i,retryTimes,e.getMessage(),url());
                 try {
-                    Thread.sleep(3000);
+                    Thread.sleep(1000);
                 } catch (InterruptedException e1) {
                     e1.printStackTrace();
                 }
             }
-            retryTimes--;
-        }
-        if(retryTimes==0){
-            throw new SocketTimeoutException("读取超时!链接:"+url());
         }
         baos.flush();
         bytes = baos.toByteArray();
@@ -258,60 +221,65 @@ public class AbstractResponse implements Response{
 
     @Override
     public BufferedInputStream bodyStream() {
-        return bufferedInputStream;
+        return responseMeta.bufferedInputStream;
     }
 
     @Override
     public Document parse() throws IOException {
-        if(document==null){
-            if(body==null){
+        if(responseMeta.document==null){
+            if(responseMeta.body==null){
                 body();
             }
-            document = Document.parse(body);
+            responseMeta.document = Document.parse(responseMeta.body);
         }
-        return document;
+        return responseMeta.document;
     }
 
     @Override
     public DocumentParser parser() throws IOException {
-        if(documentParser==null){
-            if(body==null){
+        if(responseMeta.documentParser==null){
+            if(responseMeta.body==null){
                 body();
             }
-            documentParser = DocumentParser.parse(body);
+            responseMeta.documentParser = DocumentParser.parse(responseMeta.body);
         }
-        return documentParser;
+        return responseMeta.documentParser;
     }
 
     @Override
     public void close() {
         try {
-            bufferedInputStream.close();
+            responseMeta.bufferedInputStream.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        this.httpURLConnection.disconnect();
+        responseMeta.httpURLConnection.disconnect();
+    }
+
+    @Override
+    public ResponseMeta responseMeta() {
+        return responseMeta;
     }
 
     private void getCharset() throws IOException {
         getCharsetFromContentType(responseMeta.contentType);
-        if(charset==null){
+        if(responseMeta.charset==null){
             byte[] bytes = new byte[1024*5];
-            bufferedInputStream.mark(bytes.length);
-            bufferedInputStream.read(bytes,0,bytes.length);
-            boolean readFully = (bufferedInputStream.read()==-1);
-            bufferedInputStream.reset();
+            responseMeta.bufferedInputStream.mark(bytes.length);
+            responseMeta.bufferedInputStream.read(bytes,0,bytes.length);
+            boolean readFully = (responseMeta.bufferedInputStream.read()==-1);
+            responseMeta.bufferedInputStream.reset();
             ByteBuffer firstBytes = ByteBuffer.wrap(bytes);
             getCharsetFromBOM(firstBytes);
-            if(charset==null){
+            if(responseMeta.charset==null){
                 getCharsetFromMeta(firstBytes,readFully);
             }
         }
-        if(charset==null){
-            charset = "utf-8";
+        if(responseMeta.charset==null){
+            responseMeta.charset = "utf-8";
             logger.debug("[获取charset为空]使用默认编码:utf-8");
         }else{
-            logger.debug("[获取charset]charset:{}",charset);
+            logger.debug("[获取charset]charset:{}",responseMeta.charset);
         }
     }
 
@@ -331,20 +299,20 @@ public class AbstractResponse implements Response{
             if (meta.hasAttr("http-equiv")) {
                 getCharsetFromContentType(meta.attr("content"));
             }
-            if (charset == null && meta.hasAttr("charset")) {
-                charset = meta.attr("charset");
+            if (responseMeta.charset == null && meta.hasAttr("charset")) {
+                responseMeta.charset = meta.attr("charset");
             }
             break;
         }
 
-        if(charset==null){
+        if(responseMeta.charset==null){
             Element root = doc.root();
             if(doc.root().tagName().equals("?xml")&&root.hasAttr("encoding")){
-                charset = root.attr("encoding");
+                responseMeta.charset = root.attr("encoding");
             }
         }
         if(readFully){
-            this.document = doc;
+            responseMeta.document = doc;
         }
     }
 
@@ -358,15 +326,15 @@ public class AbstractResponse implements Response{
         }
         if (bom[0] == 0x00 && bom[1] == 0x00 && bom[2] == (byte) 0xFE && bom[3] == (byte) 0xFF ||
                 bom[0] == (byte) 0xFF && bom[1] == (byte) 0xFE && bom[2] == 0x00 && bom[3] == 0x00) {
-            charset = "utf-32";
+            responseMeta.charset = "utf-32";
         } else if (bom[0] == (byte) 0xFE && bom[1] == (byte) 0xFF ||
                 bom[0] == (byte) 0xFF && bom[1] == (byte) 0xFE) {
-            charset = "utf-16";
+            responseMeta.charset = "utf-16";
         } else if (bom[0] == (byte) 0xEF && bom[1] == (byte) 0xBB && bom[2] == (byte) 0xBF) {
-            charset = "utf-8";
+            responseMeta.charset = "utf-8";
         }
-        if(charset!=null){
-            bufferedInputStream.skip(1);
+        if(responseMeta.charset!=null){
+            responseMeta.bufferedInputStream.skip(1);
         }
     }
 
@@ -377,9 +345,9 @@ public class AbstractResponse implements Response{
             if(startIndex>=0){
                 int endIndex = contentType.lastIndexOf(";");
                 if(endIndex>startIndex){
-                    charset = contentType.substring(startIndex+prefix.length(),endIndex).trim();
+                    responseMeta.charset = contentType.substring(startIndex+prefix.length(),endIndex).trim();
                 }else if(endIndex<startIndex){
-                    charset = contentType.substring(startIndex+prefix.length()).trim();
+                    responseMeta.charset = contentType.substring(startIndex+prefix.length()).trim();
                 }
             }
         }

@@ -38,6 +38,7 @@ public class QuickHttp {
                     sb.append(scanner.nextLine());
                 }
                 JSONArray array = JSON.parseArray(sb.toString());
+                StringBuilder builder = new StringBuilder();
                 for(int i=0;i<array.size();i++){
                     JSONObject o = array.getJSONObject(i);
                     HttpCookie httpCookie = new HttpCookie(o.getString("name"),o.getString("value"));
@@ -45,7 +46,6 @@ public class QuickHttp {
                     httpCookie.setMaxAge(o.getLong("maxAge"));
                     //判断是否过期
                     if(file.lastModified()+(httpCookie.getMaxAge()*1000)<=System.currentTimeMillis()){
-                        logger.trace("[过期cookie]name:{},value:{},domain:{}",httpCookie.getName(),httpCookie.getValue(),httpCookie.getDomain());
                         continue;
                     }
                     httpCookie.setPath(o.getString("path"));
@@ -56,8 +56,9 @@ public class QuickHttp {
                     httpCookie.setCommentURL(o.getString("commentURL"));
                     httpCookie.setVersion(0);
                     QuickHttp.addCookie(httpCookie);
+                    builder.append(httpCookie.getName()+"="+httpCookie.getValue()+";");
                 }
-                logger.info("[载入cookie文件]载入cookie个数:{}",array.size());
+                logger.info("[载入cookie]{}",builder.toString());
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
@@ -255,7 +256,6 @@ public class QuickHttp {
     public static void proxy(Proxy proxy) {
         ValidateUtil.checkNotNull(proxy,"代理对象不能为空!");
         QuickHttpConfig.proxy = proxy;
-        logger.info("[设置全局代理]地址:{}",proxy.address());
     }
 
     /**
@@ -267,7 +267,6 @@ public class QuickHttp {
         ValidateUtil.checkNotEmpty(host,"代理地址不能为空!");
         ValidateUtil.checkArgument(port>0,"代理端口必须大于0!port:"+port);
         QuickHttpConfig.proxy = new Proxy(Proxy.Type.HTTP,new InetSocketAddress(host,port));
-        logger.info("[设置全局代理]地址:{},端口:{}",host,port);
     }
 
     /**
@@ -277,7 +276,6 @@ public class QuickHttp {
     public static void retryTimes(int retryTimes) {
         ValidateUtil.checkArgument(retryTimes>0,"重试次数必须大于0!retryTimes:"+retryTimes);
         QuickHttpConfig.retryTimes = retryTimes;
-        logger.info("[设置最大重试次数]最大重试次数:{}",retryTimes);
     }
 
     /**
@@ -287,7 +285,6 @@ public class QuickHttp {
     public static void maxTimeout(int maxTimeout) {
         ValidateUtil.checkArgument(maxTimeout>0,"最大超时时间必须大于0!retryTimes:"+maxTimeout);
         QuickHttpConfig.maxTimeout = maxTimeout;
-        logger.info("[设置最大超时时间]最大超时时间:{}",maxTimeout);
     }
 
     /**

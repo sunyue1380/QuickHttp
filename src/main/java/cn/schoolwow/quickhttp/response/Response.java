@@ -3,6 +3,7 @@ package cn.schoolwow.quickhttp.response;
 import cn.schoolwow.quickhttp.connection.Connection;
 import cn.schoolwow.quickhttp.document.Document;
 import cn.schoolwow.quickhttp.document.DocumentParser;
+import cn.schoolwow.quickhttp.domain.ResponseMeta;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
@@ -79,6 +80,8 @@ public interface Response {
     DocumentParser parser() throws IOException;
 
     void close();
+
+    ResponseMeta responseMeta();
 
     interface CallBack{
         void onResponse(Response response);

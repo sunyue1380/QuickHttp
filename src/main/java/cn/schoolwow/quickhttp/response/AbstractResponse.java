@@ -46,6 +46,9 @@ public class AbstractResponse implements Response{
         Map<String, List<String>> headerFields = httpURLConnection.getHeaderFields();
         Set<String> keySet = headerFields.keySet();
         for(String key:keySet){
+            if(null==key){
+                continue;
+            }
             responseMeta.headerMap.put(key,httpURLConnection.getHeaderField(key));
         }
         responseMeta.contentType = httpURLConnection.getContentType();
@@ -277,9 +280,6 @@ public class AbstractResponse implements Response{
         }
         if(responseMeta.charset==null){
             responseMeta.charset = "utf-8";
-            logger.debug("[获取charset为空]使用默认编码:utf-8");
-        }else{
-            logger.debug("[获取charset]charset:{}",responseMeta.charset);
         }
     }
 

@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.*;
 import java.util.List;
 import java.util.Map;
@@ -22,32 +23,31 @@ import java.util.Set;
 public class QuickHttp {
     private static Logger logger = LoggerFactory.getLogger(QuickHttp.class);
     public static CookieManager cookieManager = new CookieManager();
+    /**Cookie存放地址*/
+    public static URL cookiesFileUrl;
+
     static{
         cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER);
         CookieHandler.setDefault(cookieManager);
         //打开限制头部
         System.setProperty("sun.net.http.allowRestrictedHeaders", "true");
 
-        //判断Cookie文件是否存在,若存在则加载
-        File file = QuickHttpConfig.cookiesFile;
-        if(null!=file&&file.exists()){
-            try {
-                StringBuilder sb = new StringBuilder();
-                Scanner scanner = new Scanner(file);
-                while(scanner.hasNext()){
-                    sb.append(scanner.nextLine());
-                }
-                JSONArray array = JSON.parseArray(sb.toString());
+        //获取真实路径
+        try {
+            cookiesFileUrl = ClassLoader.getSystemClassLoader().getResource("cookies.json");
+            if(null!=cookiesFileUrl){
+                Scanner scanner = new Scanner(cookiesFileUrl.openStream());
                 StringBuilder builder = new StringBuilder();
+                while(scanner.hasNext()){
+                    builder.append(scanner.nextLine());
+                }
+                JSONArray array = JSON.parseArray(builder.toString());
+                builder.setLength(0);
                 for(int i=0;i<array.size();i++){
                     JSONObject o = array.getJSONObject(i);
                     HttpCookie httpCookie = new HttpCookie(o.getString("name"),o.getString("value"));
                     httpCookie.setDomain(o.getString("domain"));
                     httpCookie.setMaxAge(o.getLong("maxAge"));
-                    //判断是否过期
-                    if(file.lastModified()+(httpCookie.getMaxAge()*1000)<=System.currentTimeMillis()){
-                        continue;
-                    }
                     httpCookie.setPath(o.getString("path"));
                     httpCookie.setSecure(o.getBoolean("secure"));
                     httpCookie.setHttpOnly(o.getBoolean("httpOnly"));
@@ -58,10 +58,10 @@ public class QuickHttp {
                     QuickHttp.addCookie(httpCookie);
                     builder.append(httpCookie.getName()+"="+httpCookie.getValue()+";");
                 }
-                logger.info("[载入cookie]{}",builder.toString());
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
+                logger.info("[载入cookie]url:{},cookie:{}",cookiesFileUrl,builder.toString());
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 

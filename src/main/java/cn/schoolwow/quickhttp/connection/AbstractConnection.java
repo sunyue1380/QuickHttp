@@ -356,11 +356,11 @@ public class AbstractConnection implements Connection{
                     if(i==requestMeta.retryTimes){
                         throw e;
                     }
+                    logger.warn("[链接超时]重试{}/{}次,原因:{},超时时间:{}ms,,地址:{}",i+1,requestMeta.retryTimes,e.getMessage(),requestMeta.timeout,requestMeta.url);
                     requestMeta.timeout = requestMeta.timeout*2;
                     if(requestMeta.timeout>=QuickHttpConfig.maxTimeout){
                         requestMeta.timeout = QuickHttpConfig.maxTimeout;
                     }
-                    logger.warn("[链接超时]重试{}/{}次,原因:{},地址:{}",i,requestMeta.retryTimes,e.getMessage(),requestMeta.url);
                 }
             }
         }
@@ -392,9 +392,10 @@ public class AbstractConnection implements Connection{
         }
         //写入文本文件
         List<HttpCookie> httpCookieList = QuickHttp.getCookies();
-        if(httpCookieList.size()>0&&null!=QuickHttpConfig.cookiesFile){
+        if(httpCookieList.size()>0&&null!=QuickHttp.cookiesFileUrl){
             logger.debug("[写入Cookie文件]写入Cookie个数:{}",httpCookieList.size());
-            PrintWriter printWriter = new PrintWriter(QuickHttpConfig.cookiesFile);
+            File file = new File(QuickHttp.cookiesFileUrl.getFile());
+            PrintWriter printWriter = new PrintWriter(file);
             printWriter.print(JSON.toJSONString(httpCookieList));
             printWriter.flush();
             printWriter.close();
@@ -429,7 +430,7 @@ public class AbstractConnection implements Connection{
     @Override
     public Connection clone(){
         AbstractConnection connection = (AbstractConnection) QuickHttp.connect(this.requestMeta.url)
-                .requestMeta(requestMeta);
+                .requestMeta(requestMeta.clone());
         return connection;
     }
 
@@ -455,9 +456,8 @@ public class AbstractConnection implements Connection{
         }
         httpURLConnection.setRequestMethod(requestMeta.method.name());
         httpURLConnection.setConnectTimeout(requestMeta.timeout);
-        httpURLConnection.setReadTimeout(requestMeta.timeout);
+        httpURLConnection.setReadTimeout(requestMeta.timeout*2);
         httpURLConnection.setInstanceFollowRedirects(false);
-        requestMeta.headers.put("Accept-Encoding","gzip, deflate");
         //设置头部
         {
             Set<Map.Entry<String, String>> entrySet = requestMeta.headers.entrySet();

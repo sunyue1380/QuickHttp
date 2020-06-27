@@ -5,6 +5,7 @@ import cn.schoolwow.quickhttp.document.DocumentParser;
 
 import java.io.BufferedInputStream;
 import java.net.HttpURLConnection;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
@@ -23,7 +24,7 @@ public class ResponseMeta {
     /**文件信息*/
     public String contentDisposition;
     /**头部信息*/
-    public Map<String,String> headerMap = new IdentityHashMap<>();
+    public Map<String,String> headerMap = new HashMap<>();
     /**输入流*/
     public BufferedInputStream bufferedInputStream;
     /**输入流字符串*/

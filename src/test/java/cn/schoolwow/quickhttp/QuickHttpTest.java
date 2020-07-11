@@ -24,7 +24,6 @@ public class QuickHttpTest {
         RequestMeta requestMeta = connection.requestMeta();
         RequestMeta cloneRequestMeta = connection.clone().requestMeta();
         Assert.assertEquals(false,requestMeta==cloneRequestMeta);
-        Assert.assertEquals(true,requestMeta.equals(cloneRequestMeta));
     }
 
     @Test

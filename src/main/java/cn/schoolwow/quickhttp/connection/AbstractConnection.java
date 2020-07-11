@@ -429,9 +429,27 @@ public class AbstractConnection implements Connection{
 
     @Override
     public Connection clone(){
-        AbstractConnection connection = (AbstractConnection) QuickHttp.connect(this.requestMeta.url)
-                .requestMeta(requestMeta.clone());
-        return connection;
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+            ObjectOutputStream oos = new ObjectOutputStream(baos);
+            oos.writeObject(this.requestMeta);
+            oos.close();
+
+            ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            RequestMeta requestMeta = (RequestMeta) ois.readObject();
+            requestMeta.method = this.requestMeta.method;
+            requestMeta.proxy = this.requestMeta.proxy;
+            requestMeta.httpCookieList = this.requestMeta.httpCookieList;
+            AbstractConnection connection = (AbstractConnection) QuickHttp.connect(this.requestMeta.url)
+                    .requestMeta(requestMeta);
+            return connection;
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     /**创建HttppUrlConnection对象*/

@@ -10,6 +10,7 @@ import com.alibaba.fastjson.JSONObject;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.HttpCookie;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -72,6 +73,8 @@ public interface Response {
     JSONArray jsonpAsJSONArray() throws IOException;
 
     byte[] bodyAsBytes() throws IOException;
+
+    void bodyAsFile(Path file) throws IOException;
 
     BufferedInputStream bodyStream();
 

@@ -13,16 +13,18 @@ import com.alibaba.fastjson.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.HttpCookie;
 import java.net.HttpURLConnection;
 import java.net.SocketTimeoutException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
+import java.nio.file.*;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -197,29 +199,29 @@ public class AbstractResponse implements Response{
 
     @Override
     public byte[] bodyAsBytes() throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        byte[] bytes = new byte[QuickHttpConfig.BUFFER_SIZE];
-        int length = 0;
-        int retryTimes = QuickHttpConfig.retryTimes;
-        for(int i=0;i<retryTimes;i++){
-            try {
-                while((length=responseMeta.bufferedInputStream.read(bytes,0,bytes.length))!=-1){
-                    baos.write(bytes,0,length);
-                }
-                break;
-            }catch (SocketTimeoutException e){
-                logger.warn("[读取超时]重试{}/{},原因:{},链接:{}",i,retryTimes,e.getMessage(),url());
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e1) {
-                    e1.printStackTrace();
-                }
-            }
-        }
-        baos.flush();
-        bytes = baos.toByteArray();
-        baos.close();
+        Path path = Paths.get(System.getProperty("java.io.tmpdir")+ File.separator+"/"+System.currentTimeMillis()+".response");
+        bodyAsFile(path);
+        byte[] bytes = Files.readAllBytes(path);
+        Files.deleteIfExists(path);
         return bytes;
+    }
+
+    @Override
+    public void bodyAsFile(Path file) throws IOException {
+        if(null!=responseMeta.httpURLConnection.getContentEncoding()||contentLength()==-1){
+            Files.copy(responseMeta.bufferedInputStream,file,StandardCopyOption.REPLACE_EXISTING);
+        }else{
+            ReadableByteChannel readableByteChannel = Channels.newChannel(bodyStream());
+            Set<StandardOpenOption> openOptions = null;
+            if(Files.exists(file)){
+                openOptions = EnumSet.of(StandardOpenOption.APPEND);
+            }else{
+                openOptions = EnumSet.of(StandardOpenOption.CREATE_NEW,StandardOpenOption.WRITE);
+            }
+            FileChannel fileChannel = FileChannel.open(file,openOptions);
+            fileChannel.transferFrom(readableByteChannel,Files.size(file),contentLength());
+            fileChannel.close();
+        }
     }
 
     @Override

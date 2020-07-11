@@ -14,9 +14,9 @@ public class RequestMeta implements Cloneable,Serializable{
     /**访问地址*/
     public URL url;
     /**请求方法*/
-    public volatile Connection.Method method = Connection.Method.GET;
+    public transient Connection.Method method = Connection.Method.GET;
     /**Http代理*/
-    public volatile Proxy proxy;
+    public transient Proxy proxy;
     /**Header信息*/
     public Map<String,String> headers = new HashMap<>();
     /**Data信息*/
@@ -40,7 +40,7 @@ public class RequestMeta implements Cloneable,Serializable{
     /**重定向次数*/
     public int redirectTimes = 0;
     /**保存HttpCookie*/
-    public volatile List<HttpCookie> httpCookieList = new ArrayList<>();
+    public transient List<HttpCookie> httpCookieList = new ArrayList<>();
 
     public RequestMeta(){
         headers.put("User-Agent", Connection.UserAgent.CHROME.userAgent);

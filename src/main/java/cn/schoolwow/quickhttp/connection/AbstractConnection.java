@@ -37,7 +37,7 @@ public class AbstractConnection implements Connection{
     private static HostnameVerifier hostnameVerifier;
     static{
         try {
-            SSLContext sslcontext = SSLContext.getInstance("SSL","SunJSSE");
+            SSLContext sslcontext = SSLContext.getInstance("TLSv1.2");
             sslcontext.init(null, new TrustManager[]{new X509TrustManager() {
                 @Override
                 public void checkClientTrusted(X509Certificate certificates[],String authType) throws CertificateException {
@@ -473,8 +473,8 @@ public class AbstractConnection implements Connection{
             ((HttpsURLConnection)httpURLConnection).setHostnameVerifier(AbstractConnection.hostnameVerifier);
         }
         httpURLConnection.setRequestMethod(requestMeta.method.name());
-        httpURLConnection.setConnectTimeout(requestMeta.timeout);
-        httpURLConnection.setReadTimeout(requestMeta.timeout*2);
+        httpURLConnection.setConnectTimeout(requestMeta.timeout/4);
+        httpURLConnection.setReadTimeout(requestMeta.timeout/4*3);
         httpURLConnection.setInstanceFollowRedirects(false);
         //设置头部
         {

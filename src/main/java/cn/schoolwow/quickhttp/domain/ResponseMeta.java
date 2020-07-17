@@ -6,7 +6,6 @@ import cn.schoolwow.quickhttp.document.DocumentParser;
 import java.io.BufferedInputStream;
 import java.net.HttpURLConnection;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.Map;
 
 /**返回元数据*/

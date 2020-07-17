@@ -11,8 +11,6 @@ import com.alibaba.fastjson.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.*;
 import java.util.List;
@@ -31,6 +29,8 @@ public class QuickHttp {
         CookieHandler.setDefault(cookieManager);
         //打开限制头部
         System.setProperty("sun.net.http.allowRestrictedHeaders", "true");
+        //禁止httpUrlConnection自动重试
+        System.setProperty("sun.net.http.retryPost", "false");
 
         //获取真实路径
         try {

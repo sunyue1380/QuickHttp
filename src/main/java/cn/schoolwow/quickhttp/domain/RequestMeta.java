@@ -24,7 +24,7 @@ public class RequestMeta implements Cloneable,Serializable{
     /**DataFile信息*/
     public Map<String, File> dataFileMap = new IdentityHashMap<>();
     /**超时设置*/
-    public int timeout = 3000;
+    public int timeout = 10000;
     /**自动重定向*/
     public boolean followRedirects = true;
     /**是否忽略http状态异常*/

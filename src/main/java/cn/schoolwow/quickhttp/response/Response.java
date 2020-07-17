@@ -64,26 +64,35 @@ public interface Response {
 
     String body() throws IOException;
 
+    /**返回JSON对象*/
     JSONObject bodyAsJSONObject() throws IOException;
 
+    /**返回JSON数组*/
     JSONArray bodyAsJSONArray() throws IOException;
 
+    /**解析jsonp返回JSON对象*/
     JSONObject jsonpAsJSONObject() throws IOException;
 
+    /**解析jsonp返回JSON数组*/
     JSONArray jsonpAsJSONArray() throws IOException;
 
+    /**返回字节数组*/
     byte[] bodyAsBytes() throws IOException;
 
+    /**写入到文件里*/
     void bodyAsFile(Path file) throws IOException;
 
+    /**获取输入流*/
     BufferedInputStream bodyStream();
 
     Document parse() throws IOException;
 
     DocumentParser parser() throws IOException;
 
+    /**手动关闭输入流*/
     void close();
 
+    /**获取返回元数据*/
     ResponseMeta responseMeta();
 
     interface CallBack{

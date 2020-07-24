@@ -22,6 +22,7 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
 import java.nio.file.*;
@@ -52,10 +53,14 @@ public class AbstractResponse implements Response{
             if(null==key){
                 continue;
             }
-            responseMeta.headerMap.put(key,httpURLConnection.getHeaderField(key));
+            String value = httpURLConnection.getHeaderField(key);
+            value = new String(value.getBytes("ISO-8859-1"),"UTF-8");
+            if(key.toLowerCase().equals("content-disposition")){
+                responseMeta.contentDisposition = value;
+            }
+            responseMeta.headerMap.put(key,value);
         }
         responseMeta.contentType = httpURLConnection.getContentType();
-        responseMeta.contentDisposition = httpURLConnection.getHeaderField("content-disposition");
         //提取body信息
         {
             String contentEncoding = httpURLConnection.getContentEncoding();
@@ -169,6 +174,8 @@ public class AbstractResponse implements Response{
         }
         byte[] bytes = bodyAsBytes();
         responseMeta.body = Charset.forName(responseMeta.charset).decode(ByteBuffer.wrap(bytes)).toString();
+        responseMeta.bufferedInputStream.close();
+        responseMeta.httpURLConnection.disconnect();
         return responseMeta.body;
     }
 
@@ -200,7 +207,7 @@ public class AbstractResponse implements Response{
 
     @Override
     public byte[] bodyAsBytes() throws IOException {
-        Path path = Paths.get(System.getProperty("java.io.tmpdir")+ File.separator+"/"+System.currentTimeMillis()+".response");
+        Path path = Files.createTempFile("","response");
         bodyAsFile(path);
         byte[] bytes = Files.readAllBytes(path);
         Files.deleteIfExists(path);
@@ -223,9 +230,13 @@ public class AbstractResponse implements Response{
                 openOptions = EnumSet.of(StandardOpenOption.CREATE_NEW,StandardOpenOption.WRITE);
             }
             FileChannel fileChannel = FileChannel.open(file,openOptions);
+            FileLock fileLock = fileChannel.lock();
             fileChannel.transferFrom(readableByteChannel,Files.size(file),contentLength());
+            fileLock.release();
             fileChannel.close();
         }
+        responseMeta.bufferedInputStream.close();
+        responseMeta.httpURLConnection.disconnect();
     }
 
     @Override
@@ -253,16 +264,6 @@ public class AbstractResponse implements Response{
             responseMeta.documentParser = DocumentParser.parse(responseMeta.body);
         }
         return responseMeta.documentParser;
-    }
-
-    @Override
-    public void close() {
-        try {
-            responseMeta.bufferedInputStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        responseMeta.httpURLConnection.disconnect();
     }
 
     @Override

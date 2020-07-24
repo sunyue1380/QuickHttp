@@ -13,10 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.*;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
-import java.util.Set;
+import java.util.*;
 
 public class QuickHttp {
     private static Logger logger = LoggerFactory.getLogger(QuickHttp.class);
@@ -120,12 +117,14 @@ public class QuickHttp {
         if(!domain.startsWith(".")){
             domain = "."+domain;
         }
-        try {
-            return cookieManager.getCookieStore().get(new URI(domain));
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
+        List<HttpCookie> httpCookieList = new ArrayList<>();
+        List<HttpCookie> httpCookieListStore = cookieManager.getCookieStore().getCookies();
+        for(HttpCookie httpCookie:httpCookieListStore){
+            if(httpCookie.getDomain().equals(domain)){
+                httpCookieList.add(httpCookie);
+            }
         }
-        return null;
+        return httpCookieList;
     }
 
     /**

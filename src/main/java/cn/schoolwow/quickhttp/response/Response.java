@@ -89,9 +89,6 @@ public interface Response {
 
     DocumentParser parser() throws IOException;
 
-    /**手动关闭输入流*/
-    void close();
-
     /**获取返回元数据*/
     ResponseMeta responseMeta();
 

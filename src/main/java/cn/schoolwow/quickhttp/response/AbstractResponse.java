@@ -230,9 +230,7 @@ public class AbstractResponse implements Response{
                 openOptions = EnumSet.of(StandardOpenOption.CREATE_NEW,StandardOpenOption.WRITE);
             }
             FileChannel fileChannel = FileChannel.open(file,openOptions);
-            FileLock fileLock = fileChannel.lock();
             fileChannel.transferFrom(readableByteChannel,Files.size(file),contentLength());
-            fileLock.release();
             fileChannel.close();
         }
         responseMeta.bufferedInputStream.close();

@@ -16,8 +16,7 @@ import javax.net.ssl.*;
 import java.io.*;
 import java.net.*;
 import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.Path;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.*;
@@ -31,6 +30,8 @@ public class AbstractConnection implements Connection{
     private static final int boundaryLength = 32;
 
     private RequestMeta requestMeta = new RequestMeta();
+    /**内容类型*/
+    private String contentType = "application/x-www-form-urlencoded";
     /**自定义SSL工厂*/
     private static SSLSocketFactory sslSocketFactory;
     /**HostnameVerifier*/
@@ -199,27 +200,10 @@ public class AbstractConnection implements Connection{
     }
 
     @Override
-    public Connection data(String key, File file) {
+    public Connection data(String key, Path file) {
         //IdentityHashMap的判断依据是==,故new String(key)时必要的,不要删除此代码
         requestMeta.dataFileMap.put(new String(key),file);
-        return this;
-    }
-
-    @Override
-    public Connection data(String key, String name, InputStream inputStream){
-        data(key,name,"QuickHttpTempFile_"+System.currentTimeMillis()+".tmp",inputStream);
-        return this;
-    }
-
-    @Override
-    public Connection data(String key, String name, String fileName, InputStream inputStream){
-        try {
-            File file = new File(System.getProperty("java.io.tmpdir")+File.separator+"quickhttp"+File.separator+fileName);
-            Files.copy(inputStream,file.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            requestMeta.dataFileMap.put(new String(key),file);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        contentType = "multipart/form-data";
         return this;
     }
 
@@ -231,19 +215,29 @@ public class AbstractConnection implements Connection{
 
     @Override
     public Connection requestBody(String body) {
-        requestMeta.requestBody = body;
+        requestMeta.requestBody = body.getBytes();
+        contentType = "application/json";
         return this;
     }
 
     @Override
     public Connection requestBody(JSONObject body) {
-        requestMeta.requestBody = body.toJSONString();
+        requestMeta.requestBody = body.toJSONString().getBytes();
+        contentType = "application/json";
         return this;
     }
 
     @Override
     public Connection requestBody(JSONArray array) {
-        requestMeta.requestBody = array.toJSONString();
+        requestMeta.requestBody = array.toJSONString().getBytes();
+        contentType = "application/json";
+        return this;
+    }
+
+    @Override
+    public Connection requestBody(Path file) throws IOException {
+        requestMeta.requestBody = Files.readAllBytes(file);
+        contentType = Files.probeContentType(file);
         return this;
     }
 
@@ -499,9 +493,9 @@ public class AbstractConnection implements Connection{
                 httpURLConnection.setChunkedStreamingMode(0);
                 logger.debug("[请求体]multipart/form-data,{}",requestMeta.dataFileMap);
             }else if(requestMeta.requestBody!=null&&!requestMeta.requestBody.equals("")){
-                httpURLConnection.setRequestProperty("Content-Type","application/json; charset="+requestMeta.charset+";");
-                httpURLConnection.setFixedLengthStreamingMode(requestMeta.requestBody.getBytes().length);
-                logger.debug("[请求体]application/json,{}",requestMeta.requestBody);
+                httpURLConnection.setRequestProperty("Content-Type",contentType+"; charset="+requestMeta.charset+";");
+                httpURLConnection.setFixedLengthStreamingMode(requestMeta.requestBody.length);
+                logger.debug("[请求体]{},{}",contentType,contentType.equals("application/json")?new String(requestMeta.requestBody):"");
             }else if(!requestMeta.dataMap.isEmpty()){
                 httpURLConnection.setRequestProperty("Content-Type","application/x-www-form-urlencoded; charset="+requestMeta.charset);
                 httpURLConnection.setFixedLengthStreamingMode(parameterBuilder.toString().getBytes().length);
@@ -526,30 +520,23 @@ public class AbstractConnection implements Connection{
                         w.write("\r\n");
                     }
                 }
-                Set<Map.Entry<String, File>> entrySet = requestMeta.dataFileMap.entrySet();
-                for (Map.Entry<String, File> entry : entrySet) {
-                    File file = entry.getValue();
+                Set<Map.Entry<String, Path>> entrySet = requestMeta.dataFileMap.entrySet();
+                for (Map.Entry<String, Path> entry : entrySet) {
+                    Path file = entry.getValue();
                     String name = entry.getKey().replace("\"", "%22");
-                    String fileName = file.getName().replace("\"", "%22");
 
                     w.write("--"+boundary+"\r\n");
-                    w.write("Content-Disposition: form-data; name=\""+name+"\"; filename=\""+fileName+"\"\r\n");
-                    w.write("Content-Type: "+Files.probeContentType(Paths.get(file.getAbsolutePath()))+"\r\n");
+                    w.write("Content-Disposition: form-data; name=\""+name+"\"; filename=\""+file.getFileName().toString().replace("\"","%22")+"\"\r\n");
+                    w.write("Content-Type: "+Files.probeContentType(file)+"\r\n");
                     w.write("\r\n");
                     w.flush();
-                    //写入文件二进制流
-                    FileInputStream fileInputStream = new FileInputStream(file);
-                    final byte[] buffer = new byte[QuickHttpConfig.BUFFER_SIZE];
-                    int len;
-                    while ((len = fileInputStream.read(buffer)) != -1) {
-                        outputStream.write(buffer, 0, len);
-                    }
+                    outputStream.write(Files.readAllBytes(file));
                     outputStream.flush();
                     w.write("\r\n");
                 }
                 w.write("--"+boundary+"--\r\n");
             }else if(requestMeta.requestBody!=null&&!requestMeta.requestBody.equals("")){
-                w.write(requestMeta.requestBody);
+                outputStream.write(requestMeta.requestBody);
             }else if(!requestMeta.dataMap.isEmpty()){
                 w.write(parameterBuilder.toString());
             }

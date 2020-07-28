@@ -85,6 +85,14 @@ public class QuickHttp {
     }
 
     /**
+     * 设置代理选择器
+     * @param proxySelector 代理选择器
+     * */
+    public static void setProxySelector(ProxySelector proxySelector){
+        ProxySelector.setDefault(proxySelector);
+    }
+
+    /**
      * 拦截器
      * @param interceptor 拦截器实现类
      * */

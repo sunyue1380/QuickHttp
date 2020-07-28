@@ -6,12 +6,11 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
 import javax.net.ssl.SSLSocketFactory;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.HttpCookie;
 import java.net.Proxy;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -80,11 +79,7 @@ public interface Connection extends Cloneable{
 
     Connection data(String key, String value);
 
-    Connection data(String key, File file);
-
-    Connection data(String key, String name, InputStream inputStream);
-
-    Connection data(String key, String name, String fileName, InputStream inputStream);
+    Connection data(String key, Path file);
 
     Connection data(Map<String, String> data);
 
@@ -93,6 +88,8 @@ public interface Connection extends Cloneable{
     Connection requestBody(JSONObject body);
 
     Connection requestBody(JSONArray array);
+
+    Connection requestBody(Path file) throws IOException;
 
     Connection header(String name, String value);
 

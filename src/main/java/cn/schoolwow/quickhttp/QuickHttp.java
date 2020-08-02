@@ -128,7 +128,7 @@ public class QuickHttp {
         List<HttpCookie> httpCookieList = new ArrayList<>();
         List<HttpCookie> httpCookieListStore = cookieManager.getCookieStore().getCookies();
         for(HttpCookie httpCookie:httpCookieListStore){
-            if(httpCookie.getDomain().equals(domain)){
+            if(httpCookie.getDomain().contains(domain)){
                 httpCookieList.add(httpCookie);
             }
         }

@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpCookie;
 import java.net.HttpURLConnection;
 import java.nio.Buffer;
@@ -47,6 +48,11 @@ public class AbstractResponse implements Response{
         responseMeta.statusMessage = httpURLConnection.getResponseMessage();
         if(null==responseMeta.statusMessage){
             responseMeta.statusMessage = "";
+        }
+        responseMeta.topHost = responseMeta.httpURLConnection.getURL().getHost();
+        String substring = responseMeta.topHost.substring(0,responseMeta.topHost.lastIndexOf("."));
+        if(substring.contains(".")){
+            responseMeta.topHost = responseMeta.topHost.substring(substring.lastIndexOf(".")+1);
         }
         //提取头部信息
         Map<String, List<String>> headerFields = httpURLConnection.getHeaderFields();
@@ -117,10 +123,21 @@ public class AbstractResponse implements Response{
             return null;
         }
         String contentDisposition = responseMeta.contentDisposition;
-        String prefix = "filename=";
-        String filename = contentDisposition.substring(contentDisposition.indexOf(prefix)+prefix.length());
-        filename = filename.replace("\"","").trim();
-        return filename;
+        String fileName = null;
+        if(contentDisposition.indexOf("filename*=")>0){
+            fileName = contentDisposition.substring(contentDisposition.indexOf("filename*=")+"filename*=".length());
+            String charset = fileName.substring(0,fileName.indexOf("''")).replace("\"","");
+            fileName = fileName.substring(fileName.indexOf("''")+2).replace("\"","");
+            try {
+                fileName = new String(fileName.getBytes("UTF-8"),charset);
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+        }else if(contentDisposition.indexOf("filename=")>0){
+            fileName = contentDisposition.substring(contentDisposition.indexOf("filename=")+"filename=".length());
+            fileName = fileName.replace("\"","").trim();
+        }
+        return fileName;
     }
 
     @Override
@@ -150,23 +167,23 @@ public class AbstractResponse implements Response{
 
     @Override
     public boolean hasCookie(String name) {
-        return null!=QuickHttp.getCookie(responseMeta.httpURLConnection.getURL().getHost(),name);
+        return null!=QuickHttp.getCookie(responseMeta.topHost,name);
     }
 
     @Override
     public boolean hasCookieWithValue(String name, String value) {
-        HttpCookie httpCookie = QuickHttp.getCookie(responseMeta.httpURLConnection.getURL().getHost(),name);
+        HttpCookie httpCookie = QuickHttp.getCookie(responseMeta.topHost,name);
         return null!=httpCookie&&httpCookie.getValue().equals(value);
     }
 
     @Override
     public HttpCookie cookie(String name) {
-        return QuickHttp.getCookie(responseMeta.httpURLConnection.getURL().getHost(),name);
+        return QuickHttp.getCookie(responseMeta.topHost,name);
     }
 
     @Override
     public List<HttpCookie> cookieList() {
-        return QuickHttp.getCookies(responseMeta.httpURLConnection.getURL().getHost());
+        return QuickHttp.getCookies(responseMeta.topHost);
     }
 
     @Override

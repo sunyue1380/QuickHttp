@@ -12,6 +12,8 @@ import java.util.Map;
 public class ResponseMeta {
     /**关联httpurlConnection*/
     public HttpURLConnection httpURLConnection;
+    /**顶级域*/
+    public String topHost;
     /**状态码*/
     public int statusCode;
     /**消息*/

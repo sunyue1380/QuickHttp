@@ -122,9 +122,6 @@ public class QuickHttp {
      * */
     public static List<HttpCookie> getCookies(String domain){
         ValidateUtil.checkNotEmpty(domain,"域名不能为空!");
-        if(!domain.startsWith(".")){
-            domain = "."+domain;
-        }
         List<HttpCookie> httpCookieList = new ArrayList<>();
         List<HttpCookie> httpCookieListStore = cookieManager.getCookieStore().getCookies();
         for(HttpCookie httpCookie:httpCookieListStore){

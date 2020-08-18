@@ -7,8 +7,8 @@ import cn.schoolwow.quickhttp.domain.ResponseMeta;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpCookie;
 import java.nio.file.Path;
 import java.util.List;
@@ -62,6 +62,9 @@ public interface Response {
 
     List<HttpCookie> cookieList();
 
+    /**设置最大下载速率(kb/s)*/
+    Response maxDownloadSpeed(int maxDownloadSpeed);
+
     String body() throws IOException;
 
     /**返回JSON对象*/
@@ -83,11 +86,13 @@ public interface Response {
     void bodyAsFile(Path file) throws IOException;
 
     /**获取输入流*/
-    BufferedInputStream bodyStream();
+    InputStream bodyStream();
 
     Document parse() throws IOException;
 
     DocumentParser parser() throws IOException;
+
+    void disconnect();
 
     /**获取返回元数据*/
     ResponseMeta responseMeta();

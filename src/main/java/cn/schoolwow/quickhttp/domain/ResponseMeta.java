@@ -3,7 +3,7 @@ package cn.schoolwow.quickhttp.domain;
 import cn.schoolwow.quickhttp.document.Document;
 import cn.schoolwow.quickhttp.document.DocumentParser;
 
-import java.io.BufferedInputStream;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,7 +27,7 @@ public class ResponseMeta {
     /**头部信息*/
     public Map<String,String> headerMap = new HashMap<>();
     /**输入流*/
-    public BufferedInputStream bufferedInputStream;
+    public InputStream inputStream;
     /**输入流字符串*/
     public String body;
     /**Document对象*/

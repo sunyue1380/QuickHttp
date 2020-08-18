@@ -22,9 +22,9 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -62,7 +62,7 @@ public class AbstractResponse implements Response{
                 continue;
             }
             String value = httpURLConnection.getHeaderField(key);
-            value = new String(value.getBytes("ISO-8859-1"),"UTF-8");
+            value = new String(value.getBytes(StandardCharsets.ISO_8859_1),"UTF-8");
             if(key.toLowerCase().equals("content-disposition")){
                 responseMeta.contentDisposition = value;
             }
@@ -80,9 +80,10 @@ public class AbstractResponse implements Response{
                     inputStream = new InflaterInputStream(inputStream,new Inflater(true));
                 }
             }
-            responseMeta.bufferedInputStream = new BufferedInputStream(inputStream);
+            responseMeta.inputStream = new BufferedInputStream(inputStream);
         }
         getCharset();
+        responseMeta.inputStream = new SpeedLimitInputStream(responseMeta.inputStream);
         logger.debug("[返回头]{} {}",responseMeta.statusCode,responseMeta.statusMessage);
         logger.debug("[返回头部]{}",responseMeta.headerMap);
     }
@@ -187,13 +188,19 @@ public class AbstractResponse implements Response{
     }
 
     @Override
+    public Response maxDownloadSpeed(int maxDownloadSpeed){
+        ((SpeedLimitInputStream)(responseMeta.inputStream)).setMaxDownloadSpeed(maxDownloadSpeed);
+        return this;
+    }
+
+    @Override
     public String body() throws IOException {
         if(responseMeta.body!=null){
             return responseMeta.body;
         }
         byte[] bytes = bodyAsBytes();
         responseMeta.body = Charset.forName(responseMeta.charset).decode(ByteBuffer.wrap(bytes)).toString();
-        responseMeta.bufferedInputStream.close();
+        responseMeta.inputStream.close();
         responseMeta.httpURLConnection.disconnect();
         return responseMeta.body;
     }
@@ -239,9 +246,9 @@ public class AbstractResponse implements Response{
             Files.createDirectories(file.getParent());
         }
         if(null!=responseMeta.httpURLConnection.getContentEncoding()||contentLength()==-1){
-            Files.copy(responseMeta.bufferedInputStream,file,StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(responseMeta.inputStream,file,StandardCopyOption.REPLACE_EXISTING);
         }else{
-            ReadableByteChannel readableByteChannel = Channels.newChannel(responseMeta.bufferedInputStream);
+            ReadableByteChannel readableByteChannel = Channels.newChannel(responseMeta.inputStream);
             Set<StandardOpenOption> openOptions = null;
             if(Files.exists(file)){
                 openOptions = EnumSet.of(StandardOpenOption.APPEND);
@@ -252,13 +259,13 @@ public class AbstractResponse implements Response{
             fileChannel.transferFrom(readableByteChannel,Files.size(file),contentLength());
             fileChannel.close();
         }
-        responseMeta.bufferedInputStream.close();
+        responseMeta.inputStream.close();
         responseMeta.httpURLConnection.disconnect();
     }
 
     @Override
-    public BufferedInputStream bodyStream() {
-        return responseMeta.bufferedInputStream;
+    public InputStream bodyStream() {
+        return responseMeta.inputStream;
     }
 
     @Override
@@ -284,6 +291,16 @@ public class AbstractResponse implements Response{
     }
 
     @Override
+    public void disconnect() {
+        try {
+            responseMeta.inputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        responseMeta.httpURLConnection.disconnect();
+    }
+
+    @Override
     public ResponseMeta responseMeta() {
         return responseMeta;
     }
@@ -292,10 +309,10 @@ public class AbstractResponse implements Response{
         getCharsetFromContentType(responseMeta.contentType);
         if(responseMeta.charset==null){
             byte[] bytes = new byte[1024*5];
-            responseMeta.bufferedInputStream.mark(bytes.length);
-            responseMeta.bufferedInputStream.read(bytes,0,bytes.length);
-            boolean readFully = (responseMeta.bufferedInputStream.read()==-1);
-            responseMeta.bufferedInputStream.reset();
+            responseMeta.inputStream.mark(bytes.length);
+            responseMeta.inputStream.read(bytes,0,bytes.length);
+            boolean readFully = (responseMeta.inputStream.read()==-1);
+            responseMeta.inputStream.reset();
             ByteBuffer firstBytes = ByteBuffer.wrap(bytes);
             getCharsetFromBOM(firstBytes);
             if(responseMeta.charset==null){
@@ -358,7 +375,7 @@ public class AbstractResponse implements Response{
             responseMeta.charset = "utf-8";
         }
         if(responseMeta.charset!=null){
-            responseMeta.bufferedInputStream.skip(1);
+            responseMeta.inputStream.skip(1);
         }
     }
 

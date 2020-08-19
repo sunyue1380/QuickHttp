@@ -136,4 +136,4 @@ Icon
 !**/wrapper/*.jar
 
 *.exe
-cookies.txt
+cookies.json

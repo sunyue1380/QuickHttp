@@ -9,8 +9,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class QuickHttpConfig {
     private static Logger logger = LoggerFactory.getLogger(QuickHttpConfig.class);
-    /**缓冲区大小*/
-    public static final int BUFFER_SIZE = 1024*8;
     /**全局代理*/
     public static Proxy proxy;
     /**默认重试次数*/
@@ -21,6 +19,8 @@ public class QuickHttpConfig {
     public static int maxRedirectTimes = 10;
     /**过滤器*/
     public static Interceptor interceptor;
+    /**持久化Cookie*/
+    public static volatile boolean restoreCookie;
     /**线程池配置*/
     public static int corePoolSize = Runtime.getRuntime().availableProcessors();
     public static int maximumPoolSize = corePoolSize*5;

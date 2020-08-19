@@ -17,6 +17,7 @@ import java.io.*;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.*;
@@ -385,14 +386,10 @@ public class AbstractConnection implements Connection{
             QuickHttpConfig.interceptor.afterConnection(this,response);
         }
         //写入文本文件
-        List<HttpCookie> httpCookieList = QuickHttp.getCookies();
-        if(httpCookieList.size()>0&&null!=QuickHttp.cookiesFileUrl){
-            logger.debug("[写入Cookie文件]写入Cookie个数:{}",httpCookieList.size());
-            File file = new File(QuickHttp.cookiesFileUrl.getFile());
-            PrintWriter printWriter = new PrintWriter(file);
-            printWriter.print(JSON.toJSONString(httpCookieList));
-            printWriter.flush();
-            printWriter.close();
+        if(QuickHttpConfig.restoreCookie&&response.responseMeta().headerMap.containsKey("Set-Cookie")){
+            String content = JSON.toJSONString(QuickHttp.getCookies());
+            content = URLEncoder.encode(content,"utf-8");
+            Files.write(QuickHttp.cookiesFilePath,content.getBytes(), StandardOpenOption.WRITE);
         }
         return response;
     }

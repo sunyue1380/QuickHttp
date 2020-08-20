@@ -26,6 +26,12 @@ public interface Connection extends Cloneable{
         }
     }
 
+    enum ContentType {
+        MULTIPART_FORMDATA,
+        APPLICATION_JSON,
+        APPLICATION_X_WWW_FORM_URLENCODED;
+    }
+
     enum Method {
         GET(false), POST(true), PUT(true), DELETE(false), PATCH(true), HEAD(false), OPTIONS(false), TRACE(false);
 
@@ -55,6 +61,10 @@ public interface Connection extends Cloneable{
     Connection referrer(String referrer);
 
     Connection contentType(String contentType);
+
+    Connection contentType(ContentType contentType);
+
+    Connection boundary(String boundary);
 
     Connection ajax();
 

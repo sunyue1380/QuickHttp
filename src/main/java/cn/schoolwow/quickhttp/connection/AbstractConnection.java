@@ -139,6 +139,18 @@ public class AbstractConnection implements Connection{
     }
 
     @Override
+    public Connection contentType(ContentType contentType) {
+        this.contentType = contentType.name();
+        return this;
+    }
+
+    @Override
+    public Connection boundary(String boundary) {
+        requestMeta.boundary = boundary;
+        return this;
+    }
+
+    @Override
     public Connection ajax() {
         return header("X-Requested-With", "XMLHttpRequest")
                 .header("Origin",requestMeta.url.getProtocol()+"://"+requestMeta.url.getHost());
@@ -374,6 +386,11 @@ public class AbstractConnection implements Connection{
                 String u = requestMeta.url.toString();
                 this.url(u.substring(0,u.lastIndexOf("/"))+"/"+redirectUrl);
             }
+            //重定向时方法改为get方法,删除所有主体内容
+            this.method(Method.GET);
+            requestMeta.dataFileMap.clear();
+            requestMeta.dataMap.clear();
+            requestMeta.requestBody = null;
             requestMeta.redirectTimes++;
             response = execute();
         }
@@ -435,9 +452,7 @@ public class AbstractConnection implements Connection{
             AbstractConnection connection = (AbstractConnection) QuickHttp.connect(this.requestMeta.url)
                     .requestMeta(requestMeta);
             return connection;
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
+        } catch (IOException|ClassNotFoundException e) {
             e.printStackTrace();
         }
         return null;
@@ -481,19 +496,20 @@ public class AbstractConnection implements Connection{
 
         //执行请求
         httpURLConnection.setDoInput(true);
-        if(requestMeta.method.hasBody()){
+        if(requestMeta.method.hasBody()&&(!requestMeta.dataFileMap.isEmpty()||null!=requestMeta.requestBody||!requestMeta.dataMap.isEmpty())){
             //优先级 dataFile > requestBody > dataMap
-            String boundary = null;
-            if(!requestMeta.dataFileMap.isEmpty()){
-                boundary = mimeBoundary();
-                httpURLConnection.setRequestProperty("Content-Type","multipart/form-data; boundary="+boundary+"; charset="+requestMeta.charset);
+            if(ContentType.MULTIPART_FORMDATA.name().equals(contentType)||!requestMeta.dataFileMap.isEmpty()){
+                if(null==requestMeta.boundary){
+                    requestMeta.boundary = mimeBoundary();
+                }
+                httpURLConnection.setRequestProperty("Content-Type","multipart/form-data; boundary="+requestMeta.boundary);
                 httpURLConnection.setChunkedStreamingMode(0);
                 logger.debug("[请求体]multipart/form-data,{}",requestMeta.dataFileMap);
-            }else if(requestMeta.requestBody!=null&&!requestMeta.requestBody.equals("")){
+            }else if(ContentType.APPLICATION_JSON.name().equals(contentType)||(requestMeta.requestBody!=null&&requestMeta.requestBody.length>0)){
                 httpURLConnection.setRequestProperty("Content-Type",contentType+"; charset="+requestMeta.charset+";");
                 httpURLConnection.setFixedLengthStreamingMode(requestMeta.requestBody.length);
                 logger.debug("[请求体]{},{}",contentType,contentType.equals("application/json")?new String(requestMeta.requestBody):"");
-            }else if(!requestMeta.dataMap.isEmpty()){
+            }else if(ContentType.APPLICATION_X_WWW_FORM_URLENCODED.name().equals(contentType)||!requestMeta.dataMap.isEmpty()){
                 httpURLConnection.setRequestProperty("Content-Type","application/x-www-form-urlencoded; charset="+requestMeta.charset);
                 httpURLConnection.setFixedLengthStreamingMode(parameterBuilder.toString().getBytes().length);
                 logger.debug("[请求体]application/x-www-form-urlencoded,{}",requestMeta.dataMap);
@@ -506,11 +522,11 @@ public class AbstractConnection implements Connection{
             httpURLConnection.setDoOutput(true);
             OutputStream outputStream = httpURLConnection.getOutputStream();
             final BufferedWriter w = new BufferedWriter(new OutputStreamWriter(outputStream, requestMeta.charset));
-            if(!requestMeta.dataFileMap.isEmpty()){
+            if(ContentType.MULTIPART_FORMDATA.name().equals(contentType)||!requestMeta.dataFileMap.isEmpty()){
                 if(!requestMeta.dataMap.isEmpty()) {
                     Set<Map.Entry<String, String>> entrySet = requestMeta.dataMap.entrySet();
                     for (Map.Entry<String, String> entry : entrySet) {
-                        w.write("--"+boundary+"\r\n");
+                        w.write("--"+requestMeta.boundary+"\r\n");
                         w.write("Content-Disposition: form-data; name=\""+entry.getKey().replace("\"", "%22")+"\"\r\n");
                         w.write("\r\n");
                         w.write(entry.getValue());
@@ -522,7 +538,7 @@ public class AbstractConnection implements Connection{
                     Path file = entry.getValue();
                     String name = entry.getKey().replace("\"", "%22");
 
-                    w.write("--"+boundary+"\r\n");
+                    w.write("--"+requestMeta.boundary+"\r\n");
                     w.write("Content-Disposition: form-data; name=\""+name+"\"; filename=\""+file.getFileName().toString().replace("\"","%22")+"\"\r\n");
                     w.write("Content-Type: "+Files.probeContentType(file)+"\r\n");
                     w.write("\r\n");
@@ -531,10 +547,10 @@ public class AbstractConnection implements Connection{
                     outputStream.flush();
                     w.write("\r\n");
                 }
-                w.write("--"+boundary+"--\r\n");
-            }else if(requestMeta.requestBody!=null&&!requestMeta.requestBody.equals("")){
+                w.write("--"+requestMeta.boundary+"--\r\n");
+            }else if(ContentType.APPLICATION_JSON.name().equals(contentType)||requestMeta.requestBody!=null&&!requestMeta.requestBody.equals("")){
                 outputStream.write(requestMeta.requestBody);
-            }else if(!requestMeta.dataMap.isEmpty()){
+            }else if(ContentType.APPLICATION_X_WWW_FORM_URLENCODED.name().equals(contentType)||!requestMeta.dataMap.isEmpty()){
                 w.write(parameterBuilder.toString());
             }
             w.flush();

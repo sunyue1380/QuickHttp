@@ -18,9 +18,9 @@ public class RequestMeta implements Cloneable,Serializable{
     /**Http代理*/
     public transient Proxy proxy;
     /**Header信息*/
-    public Map<String,String> headers = new HashMap<>();
+    public Map<String,String> headers = new LinkedHashMap<>();
     /**Data信息*/
-    public Map<String,String> dataMap = new HashMap<>();
+    public Map<String,String> dataMap = new LinkedHashMap<>();
     /**DataFile信息*/
     public Map<String, Path> dataFileMap = new IdentityHashMap<>();
     /**超时设置*/
@@ -35,6 +35,8 @@ public class RequestMeta implements Cloneable,Serializable{
     public String charset = "utf-8";
     /**请求类型*/
     public String contentType;
+    /**分隔符*/
+    public String boundary;
     /**重试次数*/
     public int retryTimes = -1;
     /**重定向次数*/

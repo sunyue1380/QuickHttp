@@ -5,17 +5,10 @@ import cn.schoolwow.quickhttp.connection.Connection;
 import cn.schoolwow.quickhttp.util.Interceptor;
 import cn.schoolwow.quickhttp.util.QuickHttpConfig;
 import cn.schoolwow.quickhttp.util.ValidateUtil;
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.net.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -24,8 +17,6 @@ import java.util.Set;
 public class QuickHttp {
     private static Logger logger = LoggerFactory.getLogger(QuickHttp.class);
     public static CookieManager cookieManager = new CookieManager();
-    /**Cookie存放地址*/
-    public static Path cookiesFilePath = Paths.get(System.getProperty("user.dir")+"/cookies.json");
 
     static{
         cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER);
@@ -34,50 +25,6 @@ public class QuickHttp {
         System.setProperty("sun.net.http.allowRestrictedHeaders", "true");
         //禁止httpUrlConnection自动重试
         System.setProperty("sun.net.http.retryPost", "false");
-
-        if(QuickHttpConfig.restoreCookie){
-            logger.info("[Cookie文件路径]{}",cookiesFilePath);
-            if(Files.exists(cookiesFilePath)){
-                try {
-                    String content = new String(Files.readAllBytes(cookiesFilePath));
-                    content = URLDecoder.decode(content,"utf-8");
-                    JSONArray array = JSON.parseArray(content);
-                    if(null!=array){
-                        for(int i=0;i<array.size();i++){
-                            JSONObject o = array.getJSONObject(i);
-                            HttpCookie httpCookie = new HttpCookie(o.getString("name"),o.getString("value"));
-                            httpCookie.setDomain(o.getString("domain"));
-                            httpCookie.setMaxAge(o.getLong("maxAge"));
-                            httpCookie.setPath(o.getString("path"));
-                            httpCookie.setSecure(o.getBoolean("secure"));
-                            httpCookie.setHttpOnly(o.getBoolean("httpOnly"));
-                            httpCookie.setDiscard(o.getBoolean("discard"));
-                            httpCookie.setComment(o.getString("comment"));
-                            httpCookie.setCommentURL(o.getString("commentURL"));
-                            httpCookie.setVersion(0);
-                            QuickHttp.addCookie(httpCookie);
-                        }
-                        logger.info("[载入cookie]个数:{}",array.size());
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }else{
-                try {
-                    Files.createDirectories(cookiesFilePath.getParent());
-                    Files.createFile(cookiesFilePath);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
-    /**
-     * 是否持久化Cookie
-     * */
-    public static void restoreCookie(boolean restoreCookie){
-        QuickHttpConfig.restoreCookie = restoreCookie;
     }
 
     /**
@@ -115,7 +62,14 @@ public class QuickHttp {
      * @param interceptor 拦截器实现类
      * */
     public static void intercept(Interceptor interceptor){
-        QuickHttpConfig.interceptor = interceptor;
+        QuickHttpConfig.interceptorList.add(interceptor);
+    }
+
+    /**
+     * 返回拦截器列表
+     * */
+    public static List<Interceptor> intercept(){
+        return QuickHttpConfig.interceptorList;
     }
 
     /**
@@ -342,7 +296,7 @@ public class QuickHttp {
      * @param maxTimeout 最大超时时间(毫秒)
      * */
     public static void maxTimeout(int maxTimeout) {
-        ValidateUtil.checkArgument(maxTimeout>0,"最大超时时间必须大于0!retryTimes:"+maxTimeout);
+        ValidateUtil.checkArgument(maxTimeout>0,"最大超时时间必须大于0!maxTimeout:"+maxTimeout);
         QuickHttpConfig.maxTimeout = maxTimeout;
     }
 

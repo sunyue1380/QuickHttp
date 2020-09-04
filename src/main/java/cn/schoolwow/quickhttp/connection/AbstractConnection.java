@@ -4,9 +4,9 @@ import cn.schoolwow.quickhttp.QuickHttp;
 import cn.schoolwow.quickhttp.domain.RequestMeta;
 import cn.schoolwow.quickhttp.response.AbstractResponse;
 import cn.schoolwow.quickhttp.response.Response;
+import cn.schoolwow.quickhttp.util.Interceptor;
 import cn.schoolwow.quickhttp.util.QuickHttpConfig;
 import cn.schoolwow.quickhttp.util.ValidateUtil;
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.slf4j.Logger;
@@ -17,12 +17,9 @@ import java.io.*;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.*;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 public class AbstractConnection implements Connection{
     private static Logger logger = LoggerFactory.getLogger(AbstractConnection.class);
@@ -350,6 +347,10 @@ public class AbstractConnection implements Connection{
         if(requestMeta.retryTimes<0){
             requestMeta.retryTimes = QuickHttpConfig.retryTimes;
         }
+        Iterator<Interceptor> iterator = QuickHttpConfig.interceptorList.iterator();
+        while(iterator.hasNext()){
+            iterator.next().beforeConnect(this);
+        }
         Response response = null;
         //解决由于CookieHandler的全局作用域带来的错误修改Cookie值的情况
         synchronized (QuickHttp.cookieManager){
@@ -399,21 +400,15 @@ public class AbstractConnection implements Connection{
                 throw new IOException("http状态异常!statusCode:"+response.statusCode()+",访问地址:"+requestMeta.url.toExternalForm());
             }
         }
-        if(QuickHttpConfig.interceptor!=null){
-            QuickHttpConfig.interceptor.afterConnection(this,response);
-        }
-        //写入文本文件
-        if(QuickHttpConfig.restoreCookie&&response.responseMeta().headerMap.containsKey("Set-Cookie")){
-            String content = JSON.toJSONString(QuickHttp.getCookies());
-            content = URLEncoder.encode(content,"utf-8");
-            Files.write(QuickHttp.cookiesFilePath,content.getBytes(), StandardOpenOption.WRITE);
+        while(iterator.hasNext()){
+            iterator.next().afterConnect(this,response);
         }
         return response;
     }
 
     @Override
     public void enqueue(Response.CallBack callBack) {
-        ThreadPoolExecutorHolder.threadPoolExecutor.submit(()->{
+        QuickHttpConfig.threadPoolExecutor.submit(()->{
             try {
                 Response response = execute();
                 callBack.onResponse(response);
@@ -490,9 +485,6 @@ public class AbstractConnection implements Connection{
             }
         }
         logger.debug("[请求头部]{}",requestMeta.headers);
-        if(QuickHttpConfig.interceptor!=null){
-            QuickHttpConfig.interceptor.beforeConnect(this);
-        }
 
         //执行请求
         httpURLConnection.setDoInput(true);
@@ -557,13 +549,6 @@ public class AbstractConnection implements Connection{
             w.close();
         }
         return httpURLConnection;
-    }
-
-    private static class ThreadPoolExecutorHolder{
-        private static ThreadPoolExecutor threadPoolExecutor;
-        static{
-            threadPoolExecutor = new ThreadPoolExecutor(QuickHttpConfig.corePoolSize,QuickHttpConfig.maximumPoolSize,1, TimeUnit.MINUTES,QuickHttpConfig.blockingQueue);
-        }
     }
 
     /**创建随机Boundary字符串作为分隔符*/

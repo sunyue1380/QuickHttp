@@ -15,5 +15,5 @@ public interface Interceptor {
      * @param connection 连接对象
      * @param response 返回对象
      * */
-    void afterConnection(Connection connection,Response response);
+    void afterConnect(Connection connection,Response response);
 }

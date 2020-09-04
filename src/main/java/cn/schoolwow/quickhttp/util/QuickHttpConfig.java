@@ -4,8 +4,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.Proxy;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 public class QuickHttpConfig {
     private static Logger logger = LoggerFactory.getLogger(QuickHttpConfig.class);
@@ -18,12 +20,7 @@ public class QuickHttpConfig {
     /**默认最大重定向次数*/
     public static int maxRedirectTimes = 10;
     /**过滤器*/
-    public static Interceptor interceptor;
-    /**持久化Cookie*/
-    public static volatile boolean restoreCookie;
+    public static List<Interceptor> interceptorList = new ArrayList<>();
     /**线程池配置*/
-    public static int corePoolSize = Runtime.getRuntime().availableProcessors();
-    public static int maximumPoolSize = corePoolSize*5;
-    public static BlockingQueue blockingQueue = new LinkedBlockingQueue();
-
+    public static ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
 }

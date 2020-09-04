@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 public class QueryParser {
@@ -25,11 +25,10 @@ public class QueryParser {
     private char[] chars;
     private int pos;
     private Evaluator root;
-    private static final Stack<Evaluator> evaluatorStack = new Stack<>();
-    private static CombiningEvaluator.Or or;
+    private final Stack<Evaluator> evaluatorStack = new Stack<>();
+    private CombiningEvaluator.Or or;
 
     public static Evaluator parse(String cssQuery){
-        or = null;
         return new QueryParser(cssQuery).root;
     }
 
@@ -41,7 +40,7 @@ public class QueryParser {
         while(pos<chars.length){
             boolean find = false;
             for(Selector selector:selectors){
-                int count = selector.condition.apply(chars,pos);
+                int count = selector.condition.apply(this);
                 if(count>0){
                     pos+=count;
                     find = true;
@@ -87,7 +86,10 @@ public class QueryParser {
     }
 
     private enum Selector{
-        ByIdOrClass((chars,pos)->{
+        ByIdOrClass((queryParser)->{
+            char[] chars = queryParser.chars;
+            int pos = queryParser.pos;
+
             if(chars[pos]!='#'&&chars[pos]!='.'){
                 return 0;
             }
@@ -102,16 +104,19 @@ public class QueryParser {
             String content = new String(chars,pos,count);
             if(chars[pos]=='#'){
                 Evaluator.Id idEvaluator = new Evaluator.Id(content.substring(1));
-                evaluatorStack.push(idEvaluator);
+                queryParser.evaluatorStack.push(idEvaluator);
                 logger.trace("[添加id选择器]{}",idEvaluator);
             }else if(chars[pos]=='.'){
                 Evaluator.Class aClassEvaluator = new Evaluator.Class(content.substring(1));
-                evaluatorStack.push(aClassEvaluator);
+                queryParser.evaluatorStack.push(aClassEvaluator);
                 logger.trace("[添加class选择器]{}",aClassEvaluator);
             }
             return content.length();
         }),
-        ByTag((chars,pos)->{
+        ByTag((queryParser)->{
+            char[] chars = queryParser.chars;
+            int pos = queryParser.pos;
+
             if(!Character.isLetterOrDigit(chars[pos])){
                 return 0;
             }
@@ -125,18 +130,24 @@ public class QueryParser {
             }
             String content = new String(chars,pos,count);
             Evaluator.Tag tag = new Evaluator.Tag(content);
-            evaluatorStack.push(tag);
+            queryParser.evaluatorStack.push(tag);
             logger.trace("[添加tag选择器]{}",tag);
             return content.length();
         }),
-        ByAll((chars,pos)->{
+        ByAll((queryParser)->{
+            char[] chars = queryParser.chars;
+            int pos = queryParser.pos;
+
             if(chars[pos]!='*'){
                 return 0;
             }
-            evaluatorStack.push(new Evaluator.AllElements());
+            queryParser.evaluatorStack.push(new Evaluator.AllElements());
             return 1;
         }),
-        ByAttribute((chars,pos)->{
+        ByAttribute((queryParser)->{
+            char[] chars = queryParser.chars;
+            int pos = queryParser.pos;
+
             if(chars[pos]!='['){
                 return 0;
             }
@@ -174,11 +185,14 @@ public class QueryParser {
             }else{
                 evaluator = new Evaluator.Attribute(content.substring(1,content.length()-1));
             }
-            evaluatorStack.push(evaluator);
+            queryParser.evaluatorStack.push(evaluator);
             logger.trace("[添加{}选择器]{}",evaluator.getClass().getSimpleName(),evaluator);
             return content.length();
         }),
-        ByOr((chars,pos)->{
+        ByOr((queryParser)->{
+            char[] chars = queryParser.chars;
+            int pos = queryParser.pos;
+
             if(chars[pos]!=' '&&chars[pos]!=','){
                 return 0;
             }
@@ -192,22 +206,25 @@ public class QueryParser {
             }
             //弹出选择器,直到栈为空或者碰到一个And选择器
             CombiningEvaluator.And and = new CombiningEvaluator.And(new ArrayList<>());
-            while(!evaluatorStack.isEmpty()&&!(evaluatorStack.peek() instanceof CombiningEvaluator.And)){
-                and.evaluatorList.add(evaluatorStack.pop());
+            while(!queryParser.evaluatorStack.isEmpty()&&!(queryParser.evaluatorStack.peek() instanceof CombiningEvaluator.And)){
+                and.evaluatorList.add(queryParser.evaluatorStack.pop());
             }
-            if(or==null){
-                or = new CombiningEvaluator.Or(new ArrayList<>());
-                logger.trace("[添加Or选择器]{}",or);
+            if(queryParser.or==null){
+                queryParser.or = new CombiningEvaluator.Or(new ArrayList<>());
+                logger.trace("[添加Or选择器]{}",queryParser.or);
             }
             if(and.evaluatorList.size()==1){
-                or.evaluatorList.add(and.evaluatorList.get(0));
+                queryParser.or.evaluatorList.add(and.evaluatorList.get(0));
             }else{
-                or.evaluatorList.add(and);
+                queryParser.or.evaluatorList.add(and);
             }
             logger.trace("[Or选择器中添加And选择器]{}",and);
             return content.length();
         }),
-        ByCombination((chars,pos)->{
+        ByCombination((queryParser)->{
+            char[] chars = queryParser.chars;
+            int pos = queryParser.pos;
+
             if(!isCombinators(chars[pos])){
                 return 0;
             }
@@ -218,8 +235,8 @@ public class QueryParser {
             String content = new String(chars,pos,last-pos);
             //弹出所有非StructuralEvaluator
             List<Evaluator> evaluatorList = new ArrayList<>();
-            while(!evaluatorStack.isEmpty()&&!(evaluatorStack.peek() instanceof StructuralEvaluator)){
-                evaluatorList.add(evaluatorStack.pop());
+            while(!queryParser.evaluatorStack.isEmpty()&&!(queryParser.evaluatorStack.peek() instanceof StructuralEvaluator)){
+                evaluatorList.add(queryParser.evaluatorStack.pop());
             }
             Evaluator lastEvaluator = null;
             if(evaluatorList.size()==1){
@@ -227,10 +244,10 @@ public class QueryParser {
             }else{
                 lastEvaluator = new CombiningEvaluator.And(evaluatorList);
             }
-            if(!evaluatorStack.isEmpty()){
+            if(!queryParser.evaluatorStack.isEmpty()){
                 CombiningEvaluator.And and = new CombiningEvaluator.And(new ArrayList<>());
                 and.evaluatorList.add(lastEvaluator);
-                and.evaluatorList.add(evaluatorStack.pop());
+                and.evaluatorList.add(queryParser.evaluatorStack.pop());
                 lastEvaluator = and;
             }
 
@@ -245,11 +262,14 @@ public class QueryParser {
                 evaluator = new StructuralEvaluator.Parent(lastEvaluator);
             }
             ValidateUtil.checkNotNull(lastEvaluator,"不合法的解析器!value:"+content);
-            evaluatorStack.push(evaluator);
+            queryParser.evaluatorStack.push(evaluator);
             logger.trace("[添加Combination选择器]{}",evaluator);
             return content.length();
         }),
-        ByPseudoCommon((chars,pos)->{
+        ByPseudoCommon((queryParser)->{
+            char[] chars = queryParser.chars;
+            int pos = queryParser.pos;
+
             int count = ":first-of-type".length();
             if(pos+count>=chars.length){
                 count = chars.length-pos;
@@ -266,10 +286,13 @@ public class QueryParser {
             if(targetKey==null){
                 return 0;
             }
-            evaluatorStack.push(pseudoMap.get(targetKey));
+            queryParser.evaluatorStack.push(pseudoMap.get(targetKey));
             return targetKey.length();
         }),
-        ByNth((chars,pos)->{
+        ByNth((queryParser)->{
+            char[] chars = queryParser.chars;
+            int pos = queryParser.pos;
+
             if(pos+5>=chars.length){
                 return 0;
             }
@@ -310,11 +333,14 @@ public class QueryParser {
                 structuralEvaluator = new Evaluator.IsNthLastOfType(a,b);
             }
             ValidateUtil.checkNotNull(structuralEvaluator,"无法识别的选择器!"+content);
-            evaluatorStack.push(structuralEvaluator);
+            queryParser.evaluatorStack.push(structuralEvaluator);
             logger.trace("[添加Nth选择器]{}",structuralEvaluator);
             return content.length();
         }),
-        ByPseudo((chars,pos)->{
+        ByPseudo((queryParser)->{
+            char[] chars = queryParser.chars;
+            int pos = queryParser.pos;
+
             if(chars[pos]!=':'){
                 return 0;
             }
@@ -332,9 +358,9 @@ public class QueryParser {
             }else if(content.contains(":eq")){
                 evaluator = new Evaluator.IndexEquals(Integer.parseInt(data));
             }else if(content.contains(":has")){
-                evaluator = new StructuralEvaluator.Has(evaluatorStack.pop());
+                evaluator = new StructuralEvaluator.Has(queryParser.evaluatorStack.pop());
             }else if(content.contains(":not")){
-                evaluator = new StructuralEvaluator.Not(evaluatorStack.pop());
+                evaluator = new StructuralEvaluator.Not(queryParser.evaluatorStack.pop());
             }else if(content.contains(":containsOwn")){
                 evaluator = new Evaluator.ContainsOwnText(data);
             }else if(content.contains(":matchesOwn")){
@@ -345,13 +371,13 @@ public class QueryParser {
                 evaluator = new Evaluator.Matches(Pattern.compile(data));
             }
             ValidateUtil.checkNotNull(evaluator,"不合法的选择器!value:"+content);
-            evaluatorStack.push(evaluator);
+            queryParser.evaluatorStack.push(evaluator);
             logger.trace("[添加伪类选择器]{}",evaluator);
             return content.length();
         });
-        private BiFunction<char[],Integer,Integer> condition;
+        private Function<QueryParser,Integer> condition;
 
-        Selector(BiFunction<char[], Integer, Integer> condition) {
+        Selector(Function<QueryParser,Integer> condition) {
             this.condition = condition;
         }
     }

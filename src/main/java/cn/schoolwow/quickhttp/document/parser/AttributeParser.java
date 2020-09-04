@@ -9,19 +9,23 @@ import java.util.Map;
 public class AttributeParser {
     private static Logger logger = LoggerFactory.getLogger(AttributeParser.class);
     /**输入参数*/
-    private static char[] chars;
+    private char[] chars;
     /**当前位置*/
-    private static int pos = 0;
+    private int pos = 0;
     /**token起始位置*/
-    private static int sectionStart=0;
+    private int sectionStart=0;
     /**当前key*/
-    private static String currentKey;
+    private String currentKey;
     /**属性表*/
-    private static Map<String,String> attributes;
+    private Map<String,String> attributes;
 
     public static void parse(String attribute, Map<String,String> attributes){
-        AttributeParser.attributes = attributes;
-        chars =  attribute.toCharArray();
+        new AttributeParser(attribute,attributes);
+    }
+
+    private AttributeParser(String attribute, Map<String,String> attributes){
+        this.attributes = attributes;
+        chars = attribute.toCharArray();
         pos = 0;
         sectionStart=0;
         currentKey = null;
@@ -29,8 +33,8 @@ public class AttributeParser {
     }
 
     /**词法分析*/
-    private static void parseAttribute(){
-        AttributeParser.State state = null;
+    private void parseAttribute(){
+        State state = null;
         //判断初始状态
         if(chars[pos]==' '){
             state = State.inSpace;
@@ -135,7 +139,7 @@ public class AttributeParser {
         logger.trace("[属性列表]{}", JSON.toJSONString(attributes));
     }
 
-    private static void addAttribute(AttributeType attributeType){
+    private void addAttribute(AttributeType attributeType){
         int count = pos-sectionStart;
         if(pos==chars.length-1&&chars[pos]!=' '){
             count++;
@@ -163,7 +167,7 @@ public class AttributeParser {
         sectionStart = pos;
     }
 
-    private static boolean isLastEqual(){
+    private boolean isLastEqual(){
         if(pos==0){
             return false;
         }
@@ -174,11 +178,11 @@ public class AttributeParser {
         return chars[last]=='=';
     }
 
-    private static boolean isQuoteStartEnd(){
+    private boolean isQuoteStartEnd(){
         return chars[pos]=='"'||chars[pos]=='\'';
     }
 
-    private static boolean isKeyValueStart(){
+    private boolean isKeyValueStart(){
         return chars[pos]=='_'||Character.isLetterOrDigit(chars[pos]);
     }
 

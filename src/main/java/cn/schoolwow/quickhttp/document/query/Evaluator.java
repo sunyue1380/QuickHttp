@@ -152,7 +152,7 @@ public abstract class Evaluator {
     /**
      * Evaluator for attribute name/value matching
      */
-    public static final class AttributeWithValue extends Evaluator.AttributeKeyPair {
+    public static final class AttributeWithValue extends AttributeKeyPair {
         public AttributeWithValue(String key, String value) {
             super(key, value);
         }
@@ -172,7 +172,7 @@ public abstract class Evaluator {
     /**
      * Evaluator for attribute name != value matching
      */
-    public static final class AttributeWithValueNot extends Evaluator.AttributeKeyPair {
+    public static final class AttributeWithValueNot extends AttributeKeyPair {
         public AttributeWithValueNot(String key, String value) {
             super(key, value);
         }
@@ -192,7 +192,7 @@ public abstract class Evaluator {
     /**
      * Evaluator for attribute name/value matching (value prefix)
      */
-    public static final class AttributeWithValueStarting extends Evaluator.AttributeKeyPair {
+    public static final class AttributeWithValueStarting extends AttributeKeyPair {
         public AttributeWithValueStarting(String key, String value) {
             super(key, value);
         }
@@ -212,7 +212,7 @@ public abstract class Evaluator {
     /**
      * Evaluator for attribute name/value matching (value ending)
      */
-    public static final class AttributeWithValueEnding extends Evaluator.AttributeKeyPair {
+    public static final class AttributeWithValueEnding extends AttributeKeyPair {
         public AttributeWithValueEnding(String key, String value) {
             super(key, value);
         }
@@ -232,7 +232,7 @@ public abstract class Evaluator {
     /**
      * Evaluator for attribute name/value matching (value containing)
      */
-    public static final class AttributeWithValueContaining extends Evaluator.AttributeKeyPair {
+    public static final class AttributeWithValueContaining extends AttributeKeyPair {
         public AttributeWithValueContaining(String key, String value) {
             super(key, value);
         }
@@ -312,7 +312,7 @@ public abstract class Evaluator {
     /**
      * Evaluator for matching by sibling index number (e {@literal <} idx)
      */
-    public static final class IndexLessThan extends Evaluator.IndexEvaluator {
+    public static final class IndexLessThan extends IndexEvaluator {
         public IndexLessThan(int index) {
             super(index);
         }
@@ -332,7 +332,7 @@ public abstract class Evaluator {
     /**
      * Evaluator for matching by sibling index number (e {@literal >} idx)
      */
-    public static final class IndexGreaterThan extends Evaluator.IndexEvaluator {
+    public static final class IndexGreaterThan extends IndexEvaluator {
         public IndexGreaterThan(int index) {
             super(index);
         }
@@ -352,7 +352,7 @@ public abstract class Evaluator {
     /**
      * Evaluator for matching by sibling index number (e = idx)
      */
-    public static final class IndexEquals extends Evaluator.IndexEvaluator {
+    public static final class IndexEquals extends IndexEvaluator {
         public IndexEquals(int index) {
             super(index);
         }
@@ -385,7 +385,7 @@ public abstract class Evaluator {
         }
     }
 
-    public static final class IsFirstOfType extends Evaluator.IsNthOfType {
+    public static final class IsFirstOfType extends IsNthOfType {
         public IsFirstOfType() {
             super(0,1);
         }
@@ -395,7 +395,7 @@ public abstract class Evaluator {
         }
     }
 
-    public static final class IsLastOfType extends Evaluator.IsNthLastOfType {
+    public static final class IsLastOfType extends IsNthLastOfType {
         public IsLastOfType() {
             super(0,1);
         }
@@ -447,7 +447,7 @@ public abstract class Evaluator {
      *
      * @see IndexEquals
      */
-    public static final class IsNthChild extends Evaluator.CssNthEvaluator {
+    public static final class IsNthChild extends CssNthEvaluator {
 
         public IsNthChild(int a, int b) {
             super(a,b);
@@ -468,7 +468,7 @@ public abstract class Evaluator {
      *
      * @see IndexEquals
      */
-    public static final class IsNthLastChild extends Evaluator.CssNthEvaluator {
+    public static final class IsNthLastChild extends CssNthEvaluator {
         public IsNthLastChild(int a, int b) {
             super(a,b);
         }
@@ -488,7 +488,7 @@ public abstract class Evaluator {
      * css pseudo class nth-of-type
      *
      */
-    public static class IsNthOfType extends Evaluator.CssNthEvaluator {
+    public static class IsNthOfType extends CssNthEvaluator {
         public IsNthOfType(int a, int b) {
             super(a,b);
         }
@@ -509,7 +509,7 @@ public abstract class Evaluator {
         }
     }
 
-    public static class IsNthLastOfType extends Evaluator.CssNthEvaluator {
+    public static class IsNthLastOfType extends CssNthEvaluator {
         public IsNthLastOfType(int a, int b) {
             super(a, b);
         }

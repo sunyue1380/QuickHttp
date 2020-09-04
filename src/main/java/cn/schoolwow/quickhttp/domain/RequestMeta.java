@@ -17,6 +17,8 @@ public class RequestMeta implements Cloneable,Serializable{
     public transient Connection.Method method = Connection.Method.GET;
     /**Http代理*/
     public transient Proxy proxy;
+    /**parameter信息*/
+    public Map<String,String> parameters = new LinkedHashMap<>();
     /**Header信息*/
     public Map<String,String> headers = new LinkedHashMap<>();
     /**Data信息*/
@@ -30,7 +32,7 @@ public class RequestMeta implements Cloneable,Serializable{
     /**是否忽略http状态异常*/
     public boolean ignoreHttpErrors = false;
     /**自定义请求体*/
-    public byte[] requestBody;
+    public byte[] requestBody = new byte[0];
     /**请求编码*/
     public String charset = "utf-8";
     /**请求类型*/

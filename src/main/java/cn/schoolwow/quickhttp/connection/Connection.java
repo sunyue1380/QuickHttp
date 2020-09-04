@@ -87,6 +87,8 @@ public interface Connection extends Cloneable{
 
     Connection sslSocketFactory(SSLSocketFactory sslSocketFactory);
 
+    Connection parameter(String key, String value);
+
     Connection data(String key, String value);
 
     Connection data(String key, Path file);

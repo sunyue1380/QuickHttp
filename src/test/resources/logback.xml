@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="60 seconds" debug="false">
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <Target>System.out</Target>
+        <encoder>
+            <pattern>%-5level %m %n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="cn.schoolwow.quickhttp.socket.HttpSocketConnection" level="debug" additivity="false">
+        <appender-ref ref="stdout" />
+    </logger>
+
+    <root level="info">
+        <appender-ref ref="stdout" />
+    </root>
+</configuration>

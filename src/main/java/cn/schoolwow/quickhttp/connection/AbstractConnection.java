@@ -23,6 +23,7 @@ import java.util.*;
 
 public class AbstractConnection implements Connection{
     private static Logger logger = LoggerFactory.getLogger(AbstractConnection.class);
+    private static ThreadLocal<StringBuilder> builderThreadLocal = new ThreadLocal<>();
     private static final char[] mimeBoundaryChars =
             "-_1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
     private static final int boundaryLength = 32;
@@ -204,6 +205,12 @@ public class AbstractConnection implements Connection{
     }
 
     @Override
+    public Connection parameter(String key, String value) {
+        requestMeta.parameters.put(key,value);
+        return this;
+    }
+
+    @Override
     public Connection data(String key, String value) {
         requestMeta.dataMap.put(key,value);
         return this;
@@ -326,19 +333,6 @@ public class AbstractConnection implements Connection{
     public Response execute() throws IOException {
         String protocol = requestMeta.url.getProtocol();
         ValidateUtil.checkArgument(protocol.matches("http(s)?"),"只支持http和https协议.当前协议:"+protocol);
-        //生成参数序列化字符串
-        StringBuilder parameterBuilder = new StringBuilder();
-        if(!requestMeta.dataMap.isEmpty()){
-            Set<Map.Entry<String,String>> entrySet = requestMeta.dataMap.entrySet();
-            for(Map.Entry<String,String> entry:entrySet){
-                String value = entry.getValue();
-                if(null!=value){
-                    value = URLEncoder.encode(value,requestMeta.charset);
-                }
-                parameterBuilder.append(URLEncoder.encode(entry.getKey(),requestMeta.charset)+"="+value+"&");
-            }
-            parameterBuilder.deleteCharAt(parameterBuilder.length()-1);
-        }
         //创建Connection实例
         if(requestMeta.proxy==null){
             requestMeta.proxy = QuickHttpConfig.proxy;
@@ -357,7 +351,7 @@ public class AbstractConnection implements Connection{
             QuickHttp.addCookie(requestMeta.httpCookieList);
             for(int i=0;i<=requestMeta.retryTimes;i++){
                 try {
-                    HttpURLConnection connection = createHttpUrlConnection(parameterBuilder);
+                    HttpURLConnection connection = createHttpUrlConnection();
                     response = new AbstractResponse(connection);
                     break;
                 }catch (SocketTimeoutException | ConnectException e){
@@ -454,20 +448,29 @@ public class AbstractConnection implements Connection{
     }
 
     /**创建HttppUrlConnection对象*/
-    private HttpURLConnection createHttpUrlConnection(StringBuilder parameterBuilder) throws IOException {
-        URL actualUrl = requestMeta.url;
-        //设置url请求参数
-        if(!requestMeta.method.hasBody()){
-            String parameter = (requestMeta.url.getQuery()==null?"":requestMeta.url.getQuery())+parameterBuilder.toString();
-            if(parameter!=null&&!parameter.equals("")){
-                parameter = "?"+parameter;
+    private HttpURLConnection createHttpUrlConnection() throws IOException {
+        if(!requestMeta.parameters.isEmpty()){
+            StringBuilder parameterBuilder = getBuilder();
+            Set<Map.Entry<String,String>> entrySet = requestMeta.parameters.entrySet();
+            for(Map.Entry<String,String> entry:entrySet){
+                String value = entry.getValue();
+                if(null!=value){
+                    value = URLEncoder.encode(value,requestMeta.charset);
+                }
+                parameterBuilder.append(URLEncoder.encode(entry.getKey(),requestMeta.charset)+"="+value+"&");
             }
-            actualUrl = new URL(requestMeta.url.getProtocol()+"://"+requestMeta.url.getAuthority()+requestMeta.url.getPath()+parameter);
+            parameterBuilder.deleteCharAt(parameterBuilder.length()-1);
+            if(requestMeta.url.toString().contains("?")){
+                parameterBuilder.insert(0,"&");
+            }else{
+                parameterBuilder.insert(0,"?");
+            }
+            requestMeta.url = new URL(requestMeta.url.toString()+parameterBuilder.toString());
         }
         final HttpURLConnection httpURLConnection = (HttpURLConnection) (
-                requestMeta.proxy==null?actualUrl.openConnection():actualUrl.openConnection(requestMeta.proxy)
+                requestMeta.proxy==null?requestMeta.url.openConnection():requestMeta.url.openConnection(requestMeta.proxy)
         );
-        logger.info("[请求行]{} {},代理:{}",requestMeta.method.name(),actualUrl,requestMeta.proxy==null?"无":requestMeta.proxy.address());
+        logger.info("[请求行]{} {},代理:{}",requestMeta.method.name(),requestMeta.url,requestMeta.proxy==null?"无":requestMeta.proxy.address());
         //判断是否https
         if (httpURLConnection instanceof HttpsURLConnection) {
             ((HttpsURLConnection)httpURLConnection).setSSLSocketFactory(AbstractConnection.sslSocketFactory);
@@ -503,7 +506,20 @@ public class AbstractConnection implements Connection{
                 logger.debug("[请求体]{},{}",contentType,contentType.equals("application/json")?new String(requestMeta.requestBody):"");
             }else if(ContentType.APPLICATION_X_WWW_FORM_URLENCODED.name().equals(contentType)||!requestMeta.dataMap.isEmpty()){
                 httpURLConnection.setRequestProperty("Content-Type","application/x-www-form-urlencoded; charset="+requestMeta.charset);
-                httpURLConnection.setFixedLengthStreamingMode(parameterBuilder.toString().getBytes().length);
+                if(!requestMeta.dataMap.isEmpty()){
+                    StringBuilder formBuilder = getBuilder();
+                    Set<Map.Entry<String,String>> entrySet = requestMeta.dataMap.entrySet();
+                    for(Map.Entry<String,String> entry:entrySet){
+                        String value = entry.getValue();
+                        if(null!=value){
+                            value = URLEncoder.encode(value,requestMeta.charset);
+                        }
+                        formBuilder.append(URLEncoder.encode(entry.getKey(),requestMeta.charset)+"="+value+"&");
+                    }
+                    formBuilder.deleteCharAt(formBuilder.length()-1);
+                    requestMeta.requestBody = formBuilder.toString().getBytes();
+                }
+                httpURLConnection.setFixedLengthStreamingMode(requestMeta.requestBody.length);
                 logger.debug("[请求体]application/x-www-form-urlencoded,{}",requestMeta.dataMap);
             }
             if(requestMeta.contentType!=null&&!requestMeta.contentType.isEmpty()){
@@ -543,7 +559,9 @@ public class AbstractConnection implements Connection{
             }else if(ContentType.APPLICATION_JSON.name().equals(contentType)||requestMeta.requestBody!=null&&!requestMeta.requestBody.equals("")){
                 outputStream.write(requestMeta.requestBody);
             }else if(ContentType.APPLICATION_X_WWW_FORM_URLENCODED.name().equals(contentType)||!requestMeta.dataMap.isEmpty()){
-                w.write(parameterBuilder.toString());
+                if(null!=requestMeta.requestBody){
+                    outputStream.write(requestMeta.requestBody);
+                }
             }
             w.flush();
             w.close();
@@ -559,5 +577,15 @@ public class AbstractConnection implements Connection{
             mime.append(mimeBoundaryChars[rand.nextInt(mimeBoundaryChars.length)]);
         }
         return mime.toString();
+    }
+
+    private static StringBuilder getBuilder(){
+        StringBuilder builder = builderThreadLocal.get();
+        if(null==builder){
+            builder = new StringBuilder();
+            builderThreadLocal.set(builder);
+        }
+        builder.setLength(0);
+        return builder;
     }
 }

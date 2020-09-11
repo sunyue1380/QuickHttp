@@ -449,6 +449,7 @@ public class AbstractConnection implements Connection{
 
     /**创建HttppUrlConnection对象*/
     private HttpURLConnection createHttpUrlConnection() throws IOException {
+        URL u = requestMeta.url;
         if(!requestMeta.parameters.isEmpty()){
             StringBuilder parameterBuilder = getBuilder();
             Set<Map.Entry<String,String>> entrySet = requestMeta.parameters.entrySet();
@@ -465,12 +466,12 @@ public class AbstractConnection implements Connection{
             }else{
                 parameterBuilder.insert(0,"?");
             }
-            requestMeta.url = new URL(requestMeta.url.toString()+parameterBuilder.toString());
+            u = new URL(requestMeta.url.toString()+parameterBuilder.toString());
         }
         final HttpURLConnection httpURLConnection = (HttpURLConnection) (
-                requestMeta.proxy==null?requestMeta.url.openConnection():requestMeta.url.openConnection(requestMeta.proxy)
+                requestMeta.proxy==null?u.openConnection():u.openConnection(requestMeta.proxy)
         );
-        logger.info("[请求行]{} {},代理:{}",requestMeta.method.name(),requestMeta.url,requestMeta.proxy==null?"无":requestMeta.proxy.address());
+        logger.info("[请求行]{} {},代理:{}",requestMeta.method.name(),u,requestMeta.proxy==null?"无":requestMeta.proxy.address());
         //判断是否https
         if (httpURLConnection instanceof HttpsURLConnection) {
             ((HttpsURLConnection)httpURLConnection).setSSLSocketFactory(AbstractConnection.sslSocketFactory);

@@ -169,6 +169,9 @@ public class QuickHttp {
         if(!httpCookie.getDomain().startsWith(".")){
             httpCookie.setDomain("."+httpCookie.getDomain());
         }
+        if(httpCookie.getMaxAge()<=0){
+            httpCookie.setMaxAge(3600);
+        }
         try {
             cookieManager.getCookieStore().add(new URI(httpCookie.getDomain()),httpCookie);
         } catch (URISyntaxException e) {

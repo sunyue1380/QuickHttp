@@ -6,6 +6,7 @@ import cn.schoolwow.quickhttp.document.DocumentParser;
 import cn.schoolwow.quickhttp.document.element.Element;
 import cn.schoolwow.quickhttp.document.element.Elements;
 import cn.schoolwow.quickhttp.domain.ResponseMeta;
+import cn.schoolwow.quickhttp.util.QuickHttpConfig;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
@@ -18,6 +19,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpCookie;
 import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
@@ -245,19 +247,29 @@ public class AbstractResponse implements Response{
         if(!Files.exists(file.getParent())){
             Files.createDirectories(file.getParent());
         }
-        if(null!=responseMeta.httpURLConnection.getContentEncoding()||contentLength()==-1){
-            Files.copy(responseMeta.inputStream,file,StandardCopyOption.REPLACE_EXISTING);
-        }else{
-            ReadableByteChannel readableByteChannel = Channels.newChannel(responseMeta.inputStream);
-            Set<StandardOpenOption> openOptions = null;
-            if(Files.exists(file)){
-                openOptions = EnumSet.of(StandardOpenOption.APPEND);
-            }else{
-                openOptions = EnumSet.of(StandardOpenOption.CREATE_NEW,StandardOpenOption.WRITE);
+        //处理超时异常,尝试重试
+        int retryTimes = QuickHttpConfig.retryTimes;
+        while(retryTimes>=0){
+            try {
+                if(null!=responseMeta.httpURLConnection.getContentEncoding()||contentLength()==-1){
+                    Files.copy(responseMeta.inputStream,file,StandardCopyOption.REPLACE_EXISTING);
+                }else{
+                    ReadableByteChannel readableByteChannel = Channels.newChannel(responseMeta.inputStream);
+                    Set<StandardOpenOption> openOptions = null;
+                    if(Files.exists(file)){
+                        openOptions = EnumSet.of(StandardOpenOption.APPEND);
+                    }else{
+                        openOptions = EnumSet.of(StandardOpenOption.CREATE_NEW,StandardOpenOption.WRITE);
+                    }
+                    FileChannel fileChannel = FileChannel.open(file,openOptions);
+                    fileChannel.transferFrom(readableByteChannel,Files.size(file),contentLength());
+                    fileChannel.close();
+                }
+                break;
+            }catch (SocketTimeoutException e){
+                retryTimes--;
+                logger.warn("[读取超时]{},剩余重试次数:{},url:{}",e.getMessage(),retryTimes,responseMeta.httpURLConnection.getURL());
             }
-            FileChannel fileChannel = FileChannel.open(file,openOptions);
-            fileChannel.transferFrom(readableByteChannel,Files.size(file),contentLength());
-            fileChannel.close();
         }
         responseMeta.inputStream.close();
         responseMeta.httpURLConnection.disconnect();

@@ -13,7 +13,7 @@ public class QuickHttpConfig {
     private static Logger logger = LoggerFactory.getLogger(QuickHttpConfig.class);
     /**全局代理*/
     public static Proxy proxy;
-    /**默认重试次数*/
+    /**默认全局重试次数*/
     public static int retryTimes = 3;
     /**最大超时时间(毫秒)*/
     public static int maxTimeout = 300000;

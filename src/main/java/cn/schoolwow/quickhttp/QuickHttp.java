@@ -267,6 +267,18 @@ public class QuickHttp {
 
     /**
      * 设置全局代理
+     * @param origin http协议origin
+     * */
+    public static void origin(String origin) {
+        ValidateUtil.checkNotEmpty(origin,"全局origin不能为空!");
+        if(!origin.startsWith("http")){
+            throw new IllegalArgumentException("origin必须以http开头!");
+        }
+        QuickHttpConfig.origin = origin;
+    }
+
+    /**
+     * 设置全局代理
      * @param proxy 代理对象
      * */
     public static void proxy(Proxy proxy) {

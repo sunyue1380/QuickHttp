@@ -86,6 +86,9 @@ public class AbstractConnection implements Connection{
     @Override
     public Connection url(String url) {
         ValidateUtil.checkNotEmpty(url,"URL不能为空!");
+        if(null!=QuickHttpConfig.origin&&!url.startsWith("http")){
+            url = QuickHttpConfig.origin+url;
+        }
         try {
             requestMeta.url = new URL(url);
         } catch (MalformedURLException e) {

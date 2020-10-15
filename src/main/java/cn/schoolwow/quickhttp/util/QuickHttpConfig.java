@@ -11,6 +11,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 public class QuickHttpConfig {
     private static Logger logger = LoggerFactory.getLogger(QuickHttpConfig.class);
+    /**全局origin*/
+    public static String origin;
     /**全局代理*/
     public static Proxy proxy;
     /**默认全局重试次数*/
